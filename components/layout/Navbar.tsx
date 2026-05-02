@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { UserMenu } from './UserMenu';
 
 const NAV_LINKS = [
-  { href: '/',        label: 'Home' },
+  { href: '/home',    label: 'Home' },
   { href: '/movies',  label: 'Movies' },
   { href: '/series',  label: 'Series' },
   { href: '/search',  label: 'Trending' },
@@ -22,13 +22,13 @@ export function Navbar() {
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between px-10 h-[60px] border-b border-[--flx-border-p] bg-[--flx-bg]/85 backdrop-blur-xl">
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-2 group">
+      <Link href="/home" className="flex items-center gap-2 group">
         <Image 
           src="/logo.png" 
           alt="Flixora" 
-          width={120} 
-          height={32} 
-          className="h-8 w-auto transition-transform duration-300 group-hover:scale-105" 
+          width={132} 
+          height={35} 
+          className="h-8.5 w-auto transition-transform duration-300 group-hover:scale-105" 
           priority
         />
       </Link>

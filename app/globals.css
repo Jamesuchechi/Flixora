@@ -2,15 +2,15 @@
 
 @layer base {
   :root {
-    --flx-bg:        #06070d;
-    --flx-surface-1: #0c0d18;
-    --flx-surface-2: #11121f;
-    --flx-surface-3: #181929;
-    --flx-border:    rgba(255,255,255,0.07);
-    --flx-border-p:  rgba(139,92,246,0.25);
+    --flx-bg:        #090514;
+    --flx-surface-1: #100a26;
+    --flx-surface-2: #160e33;
+    --flx-surface-3: #1d1240;
+    --flx-border:    rgba(255,255,255,0.06);
+    --flx-border-p:  rgba(139,92,246,0.2);
     --flx-text-1:    #eeeeff;
-    --flx-text-2:    #9090b0;
-    --flx-text-3:    #55557a;
+    --flx-text-2:    #9b9bbd;
+    --flx-text-3:    #666699;
     --flx-purple:    #8b5cf6;
     --flx-purple-d:  #6d28d9;
     --flx-cyan:      #22d3ee;
