@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { TMDBVideo } from '@/types/tmdb';
 import type { Metadata } from 'next';
 import { tmdb } from '@/lib/tmdb';
 import { WatchlistButton } from '@/components/movie/WatchlistButton';
@@ -7,7 +8,6 @@ import { ExternalRatings } from '@/components/movie/ExternalRatings';
 import { StreamingAvailability } from '@/components/movie/StreamingAvailability';
 import { TVAiringStatus } from '@/components/movie/TVAiringStatus';
 import { VideoPlayer } from '@/components/watch/VideoPlayer';
-import { getWatchProgress } from '@/lib/supabase/actions/progress';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -32,15 +32,18 @@ export default async function WatchPage({ params, searchParams }: Props) {
   const mediaId = Number(id);
 
   // Parallel fetch for movie/show data, recommendations, and initial progress
-  const [movie, show, similar, externalIds, initialProgress] = await Promise.all([
+  const [movie, show, similar, externalIds, videos] = await Promise.all([
     tmdb.movies.detail(mediaId, { silent: true }).catch(() => null),
     tmdb.tv.detail(mediaId, { silent: true }).catch(() => null),
     tmdb.movies.similar(mediaId, { silent: true }).catch(() => ({ results: [] })),
     tmdb.movies.externalIds(mediaId, { silent: true }).catch(() => null),
-    getWatchProgress(mediaId),
+    tmdb.movies.videos(mediaId, { silent: true }).catch(() => ({ results: [] })),
   ]);
 
   const isMovie = !!movie && !show?.name;
+  // Identify the best trailer key
+  const trailerResults = videos.results as TMDBVideo[];
+  const trailer = trailerResults.find(v => v.type === 'Trailer' && v.site === 'YouTube') || trailerResults[0];
   
   let imdbId = movie?.imdb_id ?? externalIds?.imdb_id;
   if (!isMovie && show && !imdbId) {
@@ -69,7 +72,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
             backdrop={backdrop}
             season={Number(s)}
             episode={Number(e)}
-            initialProgress={initialProgress?.progress ?? 0}
+            youtubeId={trailer?.key}
             nextEpisodeUrl={nextEpisodeUrl}
           />
         </div>

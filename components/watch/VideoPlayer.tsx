@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useWatchProgress } from '@/hooks/useWatchProgress';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { Play, SkipForward, Tv, Server, ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface VideoPlayerProps {
   tmdbId: number;
@@ -12,269 +12,166 @@ interface VideoPlayerProps {
   backdrop: string;
   season?: number;
   episode?: number;
-  initialProgress?: number;
-  videoUrl?: string;
   youtubeId?: string;
   nextEpisodeUrl?: string;
 }
 
-interface PlyrInstance {
-  on: (event: string, callback: (event: { detail: { plyr: PlyrInstance } }) => void) => void;
-  off: (event: string, callback: (event: { detail: { plyr: PlyrInstance } }) => void) => void;
-  currentTime: number;
-  duration: number;
-  source: unknown;
-  destroy: () => void;
-  togglePlay: () => void;
-  fullscreen: { toggle: () => void };
-  forward: (seconds: number) => void;
-  rewind: (seconds: number) => void;
-}
-
-interface HlsInstance {
-  isSupported: () => boolean;
-  new (): {
-    loadSource: (src: string) => void;
-    attachMedia: (element: HTMLVideoElement) => void;
-  };
-}
-
-declare global {
-  interface Window {
-    Plyr: new (element: HTMLElement | string, options?: Record<string, unknown>) => PlyrInstance;
-    Hls: HlsInstance;
-  }
-}
+const SERVERS = [
+  { id: 'vidsrc', name: 'Server 1 (Pro)', url: 'https://vidsrc.xyz/embed/' },
+  { id: 'vidsrc_to', name: 'Server 2 (HD)', url: 'https://vidsrc.to/embed/' },
+  { id: 'embed_su', name: 'Server 3 (Multi)', url: 'https://embed.su/embed/' },
+];
 
 export function VideoPlayer({
   tmdbId,
   mediaType,
-  backdrop,
+  title,
   season,
   episode,
-  initialProgress = 0,
-  videoUrl = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
   youtubeId,
   nextEpisodeUrl
 }: VideoPlayerProps) {
   const router = useRouter();
-  const { saveProgress } = useWatchProgress();
-  const playerContainerRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<PlyrInstance | null>(null);
-  const [libsLoaded, setLibsLoaded] = useState(false);
-  const [showNextCard, setShowNextCard] = useState(false);
-  const [countdown, setCountdown] = useState(10);
+  const [mode, setMode] = useState<'player' | 'trailer'>('player');
+  const [activeServer, setActiveServer] = useState(SERVERS[0]);
+  const [showServerList, setShowServerList] = useState(false);
 
-  // Load CDN Libraries
-  useEffect(() => {
-    const loadScript = (src: string, id: string) => {
-      return new Promise((resolve) => {
-        if (document.getElementById(id)) return resolve(true);
-        const script = document.createElement('script');
-        script.src = src;
-        script.id = id;
-        script.async = true;
-        script.onload = () => resolve(true);
-        document.body.appendChild(script);
-      });
-    };
-
-    const loadStyle = (href: string, id: string) => {
-      if (document.getElementById(id)) return;
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = href;
-      link.id = id;
-      document.head.appendChild(link);
-    };
-
-    Promise.all([
-      loadScript('https://cdn.plyr.io/3.7.8/plyr.js', 'plyr-js'),
-      loadScript('https://cdn.jsdelivr.net/npm/hls.js@latest', 'hls-js'),
-      loadStyle('https://cdn.plyr.io/3.7.8/plyr.css', 'plyr-css'),
-    ]).then(() => {
-      setLibsLoaded(true);
-    });
-  }, []);
-
-  // Keyboard Shortcuts
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    const player = playerRef.current;
-    if (!player) return;
-
-    // Don't trigger if user is typing in an input
-    if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
-
-    switch (e.code) {
-      case 'Space':
-        e.preventDefault();
-        player.togglePlay();
-        break;
-      case 'KeyF':
-        e.preventDefault();
-        player.fullscreen.toggle();
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        player.forward(10);
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        player.rewind(10);
-        break;
+  // Generate the professional embed URL using TMDB ID and selected Server
+  const getStreamUrl = () => {
+    const base = activeServer.url;
+    if (activeServer.id === 'embed_su') {
+      const type = mediaType === 'tv' ? 'tv' : 'movie';
+      return `${base}${type}/${tmdbId}${mediaType === 'tv' ? `/${season}/${episode}` : ''}`;
     }
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
-
-  // Initialize Player
-  useEffect(() => {
-    if (!libsLoaded || !playerContainerRef.current) return;
-
-    let videoElement: HTMLVideoElement | null = null;
     
-    if (!youtubeId) {
-      videoElement = document.createElement('video');
-      videoElement.className = 'plyr-video';
-      playerContainerRef.current.appendChild(videoElement);
+    // Default Vidsrc format
+    if (mediaType === 'tv') {
+      return `${base}tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
     }
-
-    const player = new window.Plyr(videoElement || playerContainerRef.current, {
-      autoplay: false,
-      controls: [
-        'play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 
-        'captions', 'settings', 'pip', 'airplay', 'fullscreen'
-      ],
-      youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
-      keyboard: { focused: true, global: false }, // We handle global ourselves
-    });
-
-    playerRef.current = player;
-
-    if (videoElement && window.Hls && window.Hls.isSupported() && videoUrl.includes('.m3u8')) {
-      const hls = new window.Hls();
-      hls.loadSource(videoUrl);
-      hls.attachMedia(videoElement);
-    } else if (videoElement) {
-      videoElement.src = videoUrl;
-    }
-
-    if (youtubeId) {
-      player.source = {
-        type: 'video',
-        sources: [{ src: youtubeId, provider: 'youtube' }]
-      };
-    }
-
-    // Progress & Events
-    player.on('ready', () => {
-      if (initialProgress > 0 && player.duration > 0) {
-        player.currentTime = (initialProgress / 100) * player.duration;
-      }
-    });
-
-    player.on('timeupdate', () => {
-      const remaining = player.duration - player.currentTime;
-      const percentage = Math.floor((player.currentTime / player.duration) * 100);
-      
-      // Show Next Episode card 20 seconds before end
-      if (mediaType === 'tv' && nextEpisodeUrl && remaining < 20 && remaining > 0 && !showNextCard) {
-        setShowNextCard(true);
-      } else if (remaining >= 20 && showNextCard) {
-        setShowNextCard(false);
-      }
-
-      if (percentage % 5 === 0 && percentage > initialProgress) {
-        saveProgress(tmdbId, mediaType, percentage, season, episode);
-      }
-    });
-
-    player.on('ended', () => {
-      if (mediaType === 'tv' && nextEpisodeUrl) {
-        router.push(nextEpisodeUrl);
-      }
-    });
-
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.destroy();
-      }
-      if (videoElement && videoElement.parentNode) {
-        videoElement.parentNode.removeChild(videoElement);
-      }
-    };
-  }, [libsLoaded, videoUrl, youtubeId, tmdbId, mediaType, season, episode, initialProgress, saveProgress, nextEpisodeUrl, router, showNextCard]);
-
-  // Next Episode Countdown
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (showNextCard && countdown > 0) {
-      timer = setInterval(() => setCountdown(c => c - 1), 1000);
-    } else if (showNextCard && countdown === 0 && nextEpisodeUrl) {
-      router.push(nextEpisodeUrl);
-    }
-    return () => clearInterval(timer);
-  }, [showNextCard, countdown, nextEpisodeUrl, router]);
+    return `${base}movie?tmdb=${tmdbId}`;
+  };
 
   return (
-    <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-white/5 group">
-      <div ref={playerContainerRef} className="w-full h-full" />
+    <div className="relative w-full aspect-video rounded-[32px] overflow-hidden bg-[#090514] shadow-2xl border border-white/5 group">
       
-      {!libsLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-md z-50">
-           <div className="w-12 h-12 border-4 border-white/10 border-t-[--flx-cyan] rounded-full animate-spin" />
+      {/* Player Mode (Real Movie/Episode Stream) */}
+      {mode === 'player' ? (
+        <div className="w-full h-full relative">
+          <iframe
+            key={`${activeServer.id}-${tmdbId}-${season}-${episode}`}
+            src={getStreamUrl()}
+            className="w-full h-full border-none z-10 relative"
+            allowFullScreen
+            allow="autoplay; encrypted-media; picture-in-picture"
+          />
+        </div>
+      ) : (
+        /* Trailer Mode (YouTube) */
+        <div className="relative w-full h-full bg-black">
+          {youtubeId ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&modestbranding=1&rel=0`}
+              className="w-full h-full border-none z-10 relative opacity-80"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+             <div className="absolute inset-0 flex items-center justify-center">
+                <p className="text-[--flx-text-3] text-xs uppercase tracking-[3px] font-bold">No official trailer found</p>
+             </div>
+          )}
         </div>
       )}
+
+      {/* Top Navigation Bar */}
+      <div className="absolute top-6 left-6 right-6 z-20 flex items-center justify-between pointer-events-none">
+        <div className="flex gap-2 pointer-events-auto">
+          {/* Main Toggle */}
+          <div className="flex p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl">
+            <button 
+              onClick={() => setMode('player')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
+                mode === 'player' ? "bg-white text-black shadow-lg" : "text-white/60 hover:text-white"
+              )}
+            >
+              <Play size={12} fill={mode === 'player' ? "black" : "none"} />
+              STREAM
+            </button>
+            <button 
+              onClick={() => setMode('trailer')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
+                mode === 'trailer' ? "bg-[--flx-purple] text-white shadow-lg" : "text-white/60 hover:text-white"
+              )}
+            >
+              <Tv size={12} />
+              TRAILER
+            </button>
+          </div>
+
+          {/* Server Switcher */}
+          {mode === 'player' && (
+            <div className="relative">
+              <button 
+                onClick={() => setShowServerList(!showServerList)}
+                className="flex items-center gap-2 px-4 py-3 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl text-[10px] font-bold text-white tracking-widest hover:bg-black/60 transition-all"
+              >
+                <Server size={12} className="text-[--flx-cyan]" />
+                {activeServer.name}
+                <ChevronDown size={12} className={cn("transition-transform", showServerList && "rotate-180")} />
+              </button>
+
+              {showServerList && (
+                <div className="absolute top-full left-0 mt-2 w-48 bg-[#110c1d]/95 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-2">
+                  {SERVERS.map((server) => (
+                    <button
+                      key={server.id}
+                      onClick={() => {
+                        setActiveServer(server);
+                        setShowServerList(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between px-4 py-3 text-[10px] font-bold tracking-widest transition-colors border-b border-white/5 last:border-none",
+                        activeServer.id === server.id ? "text-[--flx-cyan] bg-white/5" : "text-white/60 hover:text-white hover:bg-white/5"
+                      )}
+                    >
+                      {server.name}
+                      {activeServer.id === server.id && <div className="w-1.5 h-1.5 rounded-full bg-[--flx-cyan] animate-pulse" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Currently Playing Info */}
+        <div className="hidden sm:flex flex-col items-end opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+          <span className="text-[8px] font-black text-[--flx-cyan] uppercase tracking-[3px]">Now Streaming</span>
+          <h4 className="text-[11px] font-bold text-white uppercase tracking-tight max-w-[200px] truncate">{title}</h4>
+        </div>
+      </div>
 
       {/* Next Episode Overlay */}
-      {showNextCard && nextEpisodeUrl && (
-        <div className="absolute bottom-24 right-8 z-50 animate-fade-left">
-           <div className="bg-[--flx-surface-1]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl w-72">
-              <p className="text-[10px] font-bold text-[--flx-cyan] uppercase tracking-[3px] mb-3">Up Next</p>
-              <div className="flex gap-4 items-center mb-6">
-                 <div className="relative w-20 aspect-video rounded-lg overflow-hidden border border-white/5">
-                    <Image src={backdrop} alt="Next" fill className="object-cover opacity-60" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                       <span className="text-white font-bold text-xs">S{season}:E{(episode || 0) + 1}</span>
-                    </div>
-                 </div>
-                 <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold text-white truncate">Next Episode</h4>
-                    <p className="text-[10px] text-white/40 uppercase">Playing in {countdown}s</p>
-                 </div>
-              </div>
-              <div className="flex gap-3">
-                 <button 
-                   onClick={() => router.push(nextEpisodeUrl)}
-                   className="flex-1 bg-white text-black font-bold text-xs py-2.5 rounded-lg hover:bg-[--flx-cyan] transition-colors cursor-pointer"
-                 >
-                    Play Now
-                 </button>
-                 <button 
-                   onClick={() => setShowNextCard(false)}
-                   className="px-4 bg-white/10 text-white font-bold text-xs py-2.5 rounded-lg hover:bg-white/20 transition-colors cursor-pointer"
-                 >
-                    Cancel
-                 </button>
-              </div>
-           </div>
-        </div>
+      {mediaType === 'tv' && nextEpisodeUrl && (
+        <button 
+          onClick={() => router.push(nextEpisodeUrl)}
+          className="absolute bottom-8 right-8 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-all active:scale-95 group/next shadow-2xl opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 duration-500"
+        >
+          <div className="text-right">
+            <p className="text-[9px] font-bold text-white/40 uppercase tracking-[1px]">Next Up</p>
+            <p className="text-[11px] font-bold text-white">S{season} E{(episode || 0) + 1}</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-[--flx-purple] flex items-center justify-center shadow-lg shadow-[--flx-purple]/20 group-hover/next:scale-110 transition-transform">
+            <SkipForward size={20} className="text-white fill-white" />
+          </div>
+        </button>
       )}
 
-      <style jsx global>{`
-        :root {
-          --plyr-color-main: #8b5cf6;
-        }
-        .plyr--video {
-          border-radius: 16px;
-        }
-        .plyr__control--overlaid {
-          background: rgba(139, 92, 246, 0.8) !important;
-        }
-      `}</style>
+      {/* Atmospheric Glowing Orbs */}
+      <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-[--flx-purple]/10 blur-[150px] rounded-full pointer-events-none" />
+      <div className="absolute -top-32 -right-32 w-96 h-96 bg-[--flx-cyan]/10 blur-[150px] rounded-full pointer-events-none" />
     </div>
   );
 }
