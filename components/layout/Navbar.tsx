@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
+import { UserMenu } from './UserMenu';
 
 const NAV_LINKS = [
   { href: '/',        label: 'Home' },
@@ -20,8 +22,15 @@ export function Navbar() {
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between px-10 h-[60px] border-b border-[--flx-border-p] bg-[--flx-bg]/85 backdrop-blur-xl">
       {/* Logo */}
-      <Link href="/" className="font-bebas text-[26px] tracking-[4px] bg-linear-to-r from-[--flx-purple] via-[--flx-cyan] to-[--flx-pink] bg-clip-text text-transparent select-none">
-        FLIXORA
+      <Link href="/" className="flex items-center gap-2 group">
+        <Image 
+          src="/logo.png" 
+          alt="Flixora" 
+          width={120} 
+          height={32} 
+          className="h-8 w-auto transition-transform duration-300 group-hover:scale-105" 
+          priority
+        />
       </Link>
 
       {/* Links */}
@@ -61,10 +70,8 @@ export function Navbar() {
           <span className="absolute top-[7px] right-[7px] w-[7px] h-[7px] bg-[--flx-pink] rounded-full border-[1.5px] border-[--flx-bg]" />
         </button>
 
-        {/* Avatar */}
-        <div className="w-[34px] h-[34px] rounded-full bg-linear-to-br from-[--flx-purple] to-[--flx-cyan] flex items-center justify-center text-xs font-semibold text-white cursor-pointer select-none">
-          JD
-        </div>
+        {/* User Menu */}
+        <UserMenu />
       </div>
     </nav>
   );

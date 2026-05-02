@@ -160,7 +160,7 @@ export default async function SeriesDetailPage({ params }: Props) {
                   Play S1 E1
                 </Link>
                 <TrailerButton videoKey={trailer?.key ?? null} title={show.name} />
-                <WatchlistButton id={show.id} />
+                <WatchlistButton id={show.id} mediaType="tv" />
               </div>
             </div>
 

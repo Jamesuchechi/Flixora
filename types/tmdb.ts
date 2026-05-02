@@ -17,9 +17,17 @@ export interface TMDBMovie {
   tagline?: string;
   budget?: number;
   revenue?: number;
+  imdb_id?: string;
   genres?: TMDBGenre[];
   production_companies?: TMDBCompany[];
   belongs_to_collection?: TMDBCollection | null;
+}
+
+export interface TMDBExternalIds {
+  imdb_id?: string;
+  facebook_id?: string;
+  instagram_id?: string;
+  twitter_id?: string;
 }
 
 export interface TMDBTVShow {

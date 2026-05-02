@@ -3,8 +3,11 @@
 import { useStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
 
+import { toggleWatchlist } from '@/lib/supabase/actions/watchlist';
+
 interface WatchlistButtonProps {
   id: number;
+  mediaType: 'movie' | 'tv';
   className?: string;
   size?: 'sm' | 'md';
 }
@@ -12,20 +15,29 @@ interface WatchlistButtonProps {
 /**
  * Premium Watchlist toggle button with tactile feedback and state persistence.
  */
-export function WatchlistButton({ id, className, size = 'md' }: WatchlistButtonProps) {
+export function WatchlistButton({ id, mediaType, className, size = 'md' }: WatchlistButtonProps) {
   const isInWatchlist       = useStore((s) => s.isInWatchlist);
   const addToWatchlist      = useStore((s) => s.addToWatchlist);
   const removeFromWatchlist = useStore((s) => s.removeFromWatchlist);
   
   const saved = isInWatchlist(id);
 
-  const handleToggle = (e: React.MouseEvent) => {
+  const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Optimistic Update
     if (saved) {
       removeFromWatchlist(id);
     } else {
       addToWatchlist(id);
+    }
+
+    // Server Persistence
+    const result = await toggleWatchlist(id, mediaType);
+    if (result.error) {
+       // Rollback on error if desired, but for now we'll just log
+       console.error('Watchlist Error:', result.error);
     }
   };
 

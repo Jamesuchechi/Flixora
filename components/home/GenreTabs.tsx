@@ -3,15 +3,20 @@
 import { useStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
 
-const GENRES = ['All', 'Action', 'Sci-Fi', 'Drama', 'Thriller', 'Horror', 'Comedy', 'Anime', 'Documentary'];
+interface GenreTabsProps {
+  genres: { id: number; name: string }[];
+}
 
-export function GenreTabs() {
+export function GenreTabs({ genres }: GenreTabsProps) {
   const activeGenre  = useStore((s) => s.activeGenre);
   const setGenre     = useStore((s) => s.setActiveGenre);
 
+  // Combine 'All' with TMDB genres
+  const displayGenres = ['All', ...genres.map(g => g.name)];
+
   return (
     <div className="flex gap-2 flex-wrap mb-5">
-      {GENRES.map((g) => (
+      {displayGenres.map((g) => (
         <button
           key={g}
           onClick={() => setGenre(g)}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useStore } from '@/store/useStore';
 import { tmdb } from '@/lib/tmdb';
 import Image from 'next/image';
@@ -17,6 +17,12 @@ export function SearchOverlay() {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const handleClose = useCallback(() => {
+    setQuery('');
+    setResults([]);
+    setIsOpen(false);
+  }, [setIsOpen]);
+
   // Handle keyboard shortcuts (Cmd+K / Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -25,12 +31,12 @@ export function SearchOverlay() {
         setIsOpen(true);
       }
       if (e.key === 'Escape') {
-        setIsOpen(false);
+        handleClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setIsOpen]);
+  }, [setIsOpen, handleClose]);
 
   // Focus input when opened
   useEffect(() => {
@@ -51,7 +57,7 @@ export function SearchOverlay() {
       try {
         const data = await tmdb.search.multi(query);
         // Filter out people, keep movies/tv
-        const items = (data.results as TMDBSearchResult[]).filter((r) => r.media_type !== 'person').slice(0, 8);
+        const items = (data.results as TMDBSearchResult[]).filter((r) => r.media_type !== 'person').slice(0, 12);
         setResults(items);
       } catch (err) {
         console.error('Search failed:', err);
@@ -63,6 +69,30 @@ export function SearchOverlay() {
     return () => clearTimeout(timer);
   }, [query]);
 
+  // Group results by type
+  const groupedResults = useMemo(() => {
+    const movies = results.filter(r => r.media_type === 'movie');
+    const series = results.filter(r => r.media_type === 'tv');
+    return { movies, series };
+  }, [results]);
+
+  // Helper to highlight matching text
+  const highlightMatch = (text: string, term: string) => {
+    if (!term.trim()) return text;
+    const parts = text.split(new RegExp(`(${term})`, 'gi'));
+    return (
+      <span>
+        {parts.map((part, i) => 
+          part.toLowerCase() === term.toLowerCase() ? (
+            <span key={i} className="text-[--flx-cyan] font-bold">{part}</span>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        )}
+      </span>
+    );
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -70,7 +100,7 @@ export function SearchOverlay() {
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-[--flx-bg]/95 backdrop-blur-xl animate-in fade-in duration-300"
-        onClick={() => setIsOpen(false)}
+        onClick={handleClose}
       />
 
       {/* Search Modal */}
@@ -87,16 +117,13 @@ export function SearchOverlay() {
             onChange={(e) => {
               const val = e.target.value;
               setQuery(val);
-              if (!val.trim()) {
-                setResults([]);
-                setLoading(false);
-              }
+              if (!val.trim()) setResults([]);
             }}
             placeholder="Search for movies, series..."
             className="flex-1 bg-transparent border-none outline-none text-2xl font-medium text-[--flx-text-1] placeholder-white/20"
           />
           <button 
-            onClick={() => setIsOpen(false)}
+            onClick={handleClose}
             className="text-[--flx-text-3] hover:text-white transition-colors cursor-pointer"
           >
             <span className="text-xs font-bold uppercase tracking-widest bg-white/5 px-2 py-1 rounded border border-white/10">Esc</span>
@@ -123,50 +150,42 @@ export function SearchOverlay() {
           )}
 
           {query && results.length > 0 && (
-            <div className="p-4 space-y-1">
-              {results.map((item) => {
-                const isMovie = item.media_type === 'movie';
-                const title = isMovie ? item.title : item.name;
-                const date = isMovie ? item.release_date : item.first_air_date;
-                
-                return (
-                  <Link 
-                    key={item.id}
-                    href={`/${isMovie ? 'movies' : 'series'}/${item.id}`}
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/5 transition-all group"
-                  >
-                    <div className="relative w-14 aspect-2/3 rounded-lg overflow-hidden shrink-0">
-                      <Image 
-                        src={tmdb.image(item.poster_path, 'w185')} 
-                        alt={title || 'Media'} 
-                        fill 
-                        className="object-cover"
-                        sizes="60px"
+            <div className="p-6 space-y-8">
+              {/* Movies Section */}
+              {groupedResults.movies.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-[10px] uppercase tracking-[3px] font-bold text-white/20 ml-3">Movies</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {groupedResults.movies.map((item) => (
+                      <SearchItem 
+                        key={item.id} 
+                        item={item} 
+                        query={query} 
+                        highlightMatch={highlightMatch} 
+                        onSelect={handleClose} 
                       />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-[--flx-text-1] font-semibold truncate group-hover:text-[--flx-cyan] transition-colors">{title}</h4>
-                      <div className="flex items-center gap-2 text-xs text-[--flx-text-3]">
-                        <span className="capitalize">{item.media_type}</span>
-                        <span>•</span>
-                        <span>{getYear(date)}</span>
-                        {(item.vote_average ?? 0) > 0 && (
-                          <>
-                            <span>•</span>
-                            <span className="text-[--flx-gold]">★ {item.vote_average!.toFixed(1)}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity pr-4">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--flx-cyan]">
-                        <path d="M5 12h14m-7-7 7 7-7 7"/>
-                      </svg>
-                    </div>
-                  </Link>
-                );
-              })}
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Series Section */}
+              {groupedResults.series.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-[10px] uppercase tracking-[3px] font-bold text-white/20 ml-3">TV Series</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {groupedResults.series.map((item) => (
+                      <SearchItem 
+                        key={item.id} 
+                        item={item} 
+                        query={query} 
+                        highlightMatch={highlightMatch} 
+                        onSelect={handleClose} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -193,5 +212,48 @@ export function SearchOverlay() {
         </div>
       </div>
     </div>
+  );
+}
+
+function SearchItem({ item, query, highlightMatch, onSelect }: { 
+  item: TMDBSearchResult; 
+  query: string; 
+  highlightMatch: (t: string, q: string) => React.ReactNode;
+  onSelect: () => void;
+}) {
+  const isMovie = item.media_type === 'movie';
+  const title = isMovie ? item.title : item.name;
+  const date = isMovie ? item.release_date : item.first_air_date;
+
+  return (
+    <Link 
+      href={`/${isMovie ? 'movies' : 'series'}/${item.id}`}
+      onClick={onSelect}
+      className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/5 transition-all group border border-transparent hover:border-white/5"
+    >
+      <div className="relative w-12 aspect-2/3 rounded-lg overflow-hidden shrink-0 border border-white/5 shadow-lg">
+        <Image 
+          src={tmdb.image(item.poster_path, 'w185')} 
+          alt={title || 'Media'} 
+          fill 
+          className="object-cover group-hover:scale-110 transition-transform duration-500"
+          sizes="50px"
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="text-[--flx-text-1] text-sm font-semibold truncate group-hover:text-white transition-colors">
+          {highlightMatch(title || 'Unknown', query)}
+        </h4>
+        <div className="flex items-center gap-2 text-[10px] text-[--flx-text-3] font-bold uppercase tracking-tighter">
+          <span>{getYear(date)}</span>
+          {(item.vote_average ?? 0) > 0 && (
+            <>
+              <span>•</span>
+              <span className="text-[--flx-gold]">★ {item.vote_average!.toFixed(1)}</span>
+            </>
+          )}
+        </div>
+      </div>
+    </Link>
   );
 }

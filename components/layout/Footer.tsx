@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -36,9 +37,15 @@ export function Footer() {
           <div className="col-span-1 md:col-span-2">
             <Link 
               href="/" 
-              className="font-bebas text-3xl tracking-[4px] bg-linear-to-r from-[--flx-purple] via-[--flx-cyan] to-[--flx-pink] bg-clip-text text-transparent mb-6 inline-block"
+              className="mb-6 inline-block group"
             >
-              FLIXORA
+              <Image 
+                src="/logo.png" 
+                alt="Flixora" 
+                width={140} 
+                height={36} 
+                className="h-9 w-auto opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+              />
             </Link>
             <p className="text-[--flx-text-3] text-sm leading-relaxed max-w-sm">
               The ultimate cinematic experience. Stream your favorite movies and series in stunning quality with our immersive aurora design.

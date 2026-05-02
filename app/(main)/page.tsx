@@ -1,9 +1,11 @@
+import Link from 'next/link';
 import { tmdb } from "@/lib/tmdb";
 import { HeroBanner } from "@/components/home/HeroBanner";
 import { TopBar } from "@/components/home/TopBar";
 import { MovieRow } from "@/components/home/MovieRow";
 import { FeaturedRow } from "@/components/home/FeaturedRow";
 import { GenreTabs } from "@/components/home/GenreTabs";
+import { ContinueWatching } from "@/components/home/ContinueWatching";
 import type { TMDBMovie, TMDBTVShow } from "@/types/tmdb";
 
 export const revalidate = 3600;
@@ -23,15 +25,16 @@ export default async function HomePage() {
     <div className="min-h-screen">
       <HeroBanner />
       <TopBar />
+      <ContinueWatching />
 
       <section className="px-10 py-7">
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-bebas text-xl tracking-widest text-[--flx-text-1]">
             Trending Now
           </h2>
-          <a href="/movies" className="text-xs text-[--flx-cyan] font-medium hover:opacity-70 transition-opacity">
+          <Link href="/movies" className="text-xs text-[--flx-cyan] font-medium hover:opacity-70 transition-opacity">
             View all
-          </a>
+          </Link>
         </div>
         <GenreTabs genres={movieGenres.genres} />
         <MovieRow title="" items={trending.results.slice(0, 10) as AnyMedia[]} showRank />

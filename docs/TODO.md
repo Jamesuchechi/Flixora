@@ -72,7 +72,7 @@
 - [x] Build `HeroBanner` server component (fetch trending #1, aurora orbs, CTA buttons)
 - [x] Build `MovieCard` component (poster, title, rating, rank, hover overlay)
 - [x] Build `MovieRow` component (horizontal scroll, section header, "View all" link)
-- [ ] Build `ContinueWatching` row (thumbnail, progress bar, episode badge) — static for now
+- [x] Build `ContinueWatching` row (thumbnail, progress bar, episode badge) — static for now
 - [x] Build `FeaturedCard` (wide card for series, hover play overlay)
 - [x] Build `GenreTabs` (interactive filter tabs, client component)
 - [x] Build `TopBar` (live stats strip below hero)
@@ -84,9 +84,9 @@
 
 - [x] Build `/movies` page with paginated grid
 - [x] Build `/series` page with paginated grid
-- [ ] Add genre filter sidebar / tabs to browse pages
+- [x] Add genre filter sidebar / tabs to browse pages
 - [x] Add sort options (trending, top rated, newest, A–Z)
-- [ ] Implement infinite scroll or pagination controls
+- [x] Implement infinite scroll or pagination controls
 
 ---
 
@@ -137,18 +137,18 @@
 - [x] Install `@supabase/ssr` and `@supabase/supabase-js`
 - [x] Create `lib/supabase/client.ts` (browser client)
 - [x] Create `lib/supabase/server.ts` (server client with cookies)
-- [ ] Write `middleware.ts` to protect `/watch` and `/profile` routes
-- [ ] Auto-create profile row on new user sign-up (Supabase trigger or API route)
+- [x] Write `middleware.ts` to protect `/watch` and `/profile` routes
+- [x] Auto-create profile row on new user sign-up (Supabase trigger or API route)
 
 ### Auth UI
 
 - [x] Build `/login` page (email + password form, Google OAuth button)
-- [ ] Build `/signup` page (email, password, username)
-- [ ] Build `AuthForm` reusable component
-- [ ] Add loading and error states to auth forms
-- [ ] Handle OAuth callback in `app/auth/callback/route.ts`
+- [x] Build `/signup` page (email, password, username)
+- [x] Build `AuthForm` reusable component
+- [x] Add loading and error states to auth forms
+- [x] Handle OAuth callback in `app/auth/callback/route.ts`
 - [x] Update `Navbar` to show user avatar / name when logged in
-- [ ] Add logout button to profile dropdown
+- [x] Add logout button to profile dropdown
 
 ---
 
@@ -158,19 +158,19 @@
 
 ### Watchlist
 
-- [ ] Build `useWatchlist` hook (add, remove, check, fetch from Supabase)
+- [x] Implement watchlist logic via Server Actions (add, remove, check)
 - [x] Wire `Add to Watchlist` button on MovieCard and detail pages
-- [ ] Build API route `POST/DELETE /api/watchlist`
+- [x] Replaced API routes with direct Server Actions for better performance
 - [x] Build `/profile` page with watchlist grid
 - [x] Add optimistic UI updates for watchlist toggles (instant feedback)
 
 ### Watch Progress
 
-- [ ] Build `useProgress` hook (get, set progress in Supabase)
-- [ ] Track progress in VideoPlayer every 10 seconds
-- [ ] Populate `ContinueWatching` row from real Supabase data
-- [ ] Show resume position on movie/episode detail pages
-- [ ] Mark episodes as "watched" when progress > 90%
+- [x] Build `useWatchProgress` hook (get, set progress in Supabase)
+- [x] Track progress in VideoPlayer periodically
+- [x] Populate `ContinueWatching` row from real Supabase data
+- [x] Show resume position on movie/episode detail pages
+- [x] Mark episodes as "watched" when progress > 90%
 
 ### Zustand Store
 
@@ -185,14 +185,14 @@
 > Goal: users can watch content with a polished player.
 
 - [x] Build `/watch/[id]` page layout (full-screen player, back button, metadata sidebar)
-- [ ] Integrate **Plyr.js** as the video player (`VideoPlayer` component)
-- [ ] Support YouTube embed (for trailers and demo)
-- [ ] Support HLS streams (for actual video via `hls.js` + Plyr)
-- [ ] Implement keyboard shortcuts (space = play/pause, arrow keys = seek, F = fullscreen)
-- [ ] Auto-advance to next episode for series
-- [ ] Show "Next Episode" card 20 seconds before end
-- [ ] Save and restore playback position from Supabase
-- [ ] Handle auth gate (redirect to login if not authenticated)
+- [x] Integrate **Plyr.js** as the video player (`VideoPlayer` component)
+- [x] Support YouTube embed (for trailers and demo)
+- [x] Support HLS streams (for actual video via `hls.js` + Plyr)
+- [x] Implement keyboard shortcuts (space = play/pause, arrow keys = seek, F = fullscreen)
+- [x] Auto-advance to next episode for series
+- [x] Show "Next Episode" card 20 seconds before end
+- [x] Save and restore playback position from Supabase
+- [x] Handle auth gate (redirect to login if not authenticated)
 
 ---
 
@@ -205,9 +205,9 @@
 - [x] Add search trigger to Navbar
 - [x] Build `useSearch` hook with 300ms debounce
 - [x] Call TMDB `/search/multi` endpoint as user types
-- [ ] Display results grouped by type (Movies, Series, People)
+- [x] Display results grouped by type (Movies, Series)
 - [x] Show poster thumbnails, rating, year in results
-- [ ] Highlight matching text in results
+- [x] Highlight matching text in results
 - [x] Handle empty state and no-results state
 - [x] Build `/search?q=` page for shareable search URLs
 - [x] Add recent searches stored in localStorage
@@ -301,6 +301,9 @@
 - [ ] Email notifications for new episodes
 - [ ] Download for offline (PWA)
 - [ ] Multiple profiles per account
+- [x] Integrate OMDb API for IMDb/Rotten Tomatoes ratings
+- [ ] Integrate Watchmode API for streaming availability
+- [ ] Add cast and crew sections to movie pages
 - [ ] Parental controls / content filtering
 - [ ] Recommendation engine (based on watch history)
 - [ ] Admin dashboard for content management
