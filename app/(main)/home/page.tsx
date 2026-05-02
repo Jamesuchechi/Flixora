@@ -11,12 +11,28 @@ import type { TMDBMovie, TMDBTVShow } from "@/types/tmdb";
 export const revalidate = 3600;
 
 export default async function HomePage() {
-  const [trending, topRated, newSeries, popular, movieGenres] = await Promise.all([
+  const [
+    trending, 
+    topRated, 
+    newSeries, 
+    popular, 
+    movieGenres, 
+    koreanMovies, 
+    anime,
+    spanishMovies,
+    frenchMovies,
+    bollywood
+  ] = await Promise.all([
     tmdb.trending.all(),
     tmdb.movies.topRated(),
     tmdb.tv.onAir(),
     tmdb.movies.popular(),
     tmdb.genres.movies(),
+    tmdb.discover.movies({ with_original_language: 'ko' }),
+    tmdb.discover.tv({ with_original_language: 'ja', with_genres: '16' }),
+    tmdb.discover.movies({ with_original_language: 'es' }),
+    tmdb.discover.movies({ with_original_language: 'fr' }),
+    tmdb.discover.movies({ with_original_language: 'hi' }),
   ]);
 
   type AnyMedia = (TMDBMovie | TMDBTVShow) & { media_type?: "movie" | "tv" };
@@ -49,7 +65,22 @@ export default async function HomePage() {
       <div className="h-px bg-white/5 mx-10" />
       <MovieRow title="Popular Movies" items={popular.results.slice(0, 10)} seeAllHref="/movies" pill={{ label: "HOT", variant: "hot" }} />
 
-      <div className="h-16" />
+      <div className="h-px bg-white/5 mx-10" />
+      <MovieRow title="Anime Essentials" items={anime.results.slice(0, 10)} pill={{ label: "J-ANIME", variant: "new" }} />
+
+      <div className="h-px bg-white/5 mx-10" />
+      <MovieRow title="K-Cinema Spotlight" items={koreanMovies.results.slice(0, 10)} pill={{ label: "K-WAVE", variant: "new" }} />
+
+      <div className="h-px bg-white/5 mx-10" />
+      <MovieRow title="Spanish Cinema" items={spanishMovies.results.slice(0, 10)} pill={{ label: "ESPAÑOL", variant: "new" }} />
+
+      <div className="h-px bg-white/5 mx-10" />
+      <MovieRow title="French Classics" items={frenchMovies.results.slice(0, 10)} pill={{ label: "FRANÇAIS", variant: "new" }} />
+
+      <div className="h-px bg-white/5 mx-10" />
+      <MovieRow title="Bollywood Hits" items={bollywood.results.slice(0, 10)} pill={{ label: "BOLLYWOOD", variant: "new" }} />
+
+      <div className="h-24" />
     </div>
   );
 }

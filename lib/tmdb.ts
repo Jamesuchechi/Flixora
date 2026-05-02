@@ -136,6 +136,13 @@ const search = {
     get<TMDBPaginatedResponse<TMDBTVShow>>('/search/tv', { query, page }, options),
 };
 
+const discover = {
+  movies: (params: Record<string, string>, options?: { silent?: boolean }) => 
+    get<TMDBPaginatedResponse<TMDBMovie>>('/discover/movie', { sort_by: 'popularity.desc', ...params }, options),
+  tv: (params: Record<string, string>, options?: { silent?: boolean }) => 
+    get<TMDBPaginatedResponse<TMDBTVShow>>('/discover/tv', { sort_by: 'popularity.desc', ...params }, options),
+};
+
 export const tmdb = {
   get,
   image,
@@ -146,4 +153,5 @@ export const tmdb = {
   tv,
   genres,
   search,
+  discover,
 };
