@@ -135,9 +135,15 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                 Featured Selection
               </Badge>
 
-              <h1 className="font-bebas text-[50px] md:text-[90px] leading-[0.85] tracking-[1px] mb-6 text-[--flx-text-1]">
+              <h1 className="font-bebas text-[50px] md:text-[90px] leading-[0.95] tracking-[1px] mb-6 text-[--flx-text-1]">
                 {title.split(' ').map((word, i, arr) => (
-                  <span key={i} className={i === Math.floor(arr.length / 2) ? 'bg-linear-to-r from-[--flx-cyan] to-[--flx-purple] bg-clip-text text-transparent' : ''}>
+                  <span 
+                    key={i} 
+                    className={i === Math.floor(arr.length / 2) 
+                      ? 'bg-linear-to-r from-(--flx-cyan) to-(--flx-purple) bg-clip-text text-transparent inline-block py-1' 
+                      : 'inline-block py-1'
+                    }
+                  >
                     {word}{' '}
                   </span>
                 ))}
