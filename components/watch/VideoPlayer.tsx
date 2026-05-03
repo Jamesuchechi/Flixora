@@ -300,7 +300,7 @@ export function VideoPlayer({
               className="w-full h-full border-none z-10 relative"
               allowFullScreen
               allow="autoplay; encrypted-media; picture-in-picture"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+              referrerPolicy="no-referrer"
             />
           )}
         </div>

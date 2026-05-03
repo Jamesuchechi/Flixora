@@ -16,30 +16,37 @@ interface SmartGuardProps {
  * with a premium "Preparing Cinema" UI.
  */
 export function SmartGuard({ isShieldActive, onRefresh, className }: SmartGuardProps) {
+  const [isDismissed, setIsDismissed] = useState(false);
   const [showStatus, setShowStatus] = useState(false);
   const [isPreparing, setIsPreparing] = useState(true);
 
-  useEffect(() => {
+  // Sync state with props during render to avoid cascading effects
+  const [prevIsShieldActive, setPrevIsShieldActive] = useState(isShieldActive);
+  if (isShieldActive !== prevIsShieldActive) {
+    setPrevIsShieldActive(isShieldActive);
     if (isShieldActive) {
-      // Defer state update to next frame to avoid "cascading renders" error
-      const frame = requestAnimationFrame(() => setShowStatus(true));
-      const timer = setTimeout(() => {
-        setShowStatus(false);
-        setIsPreparing(false);
-      }, 4000); // Mask for 4 seconds while stream initializes
-      
-      return () => {
-        cancelAnimationFrame(frame);
-        clearTimeout(timer);
-      };
+      setIsDismissed(false);
+      setIsPreparing(true);
+      setShowStatus(true);
     } else {
-      const frame = requestAnimationFrame(() => {
-        setShowStatus(false);
-        setIsPreparing(false);
-      });
-      return () => cancelAnimationFrame(frame);
+      setShowStatus(false);
+      setIsPreparing(false);
     }
-  }, [isShieldActive]);
+  }
+
+  useEffect(() => {
+    if (isShieldActive && !isDismissed) {
+      const timer = setTimeout(() => {
+        setIsPreparing(false);
+      }, 4000); 
+      return () => clearTimeout(timer);
+    }
+  }, [isShieldActive, isDismissed]);
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    setShowStatus(false);
+  };
 
   return (
     <div className={cn("absolute inset-0 z-50 pointer-events-none transition-all duration-700", className)}>
@@ -69,9 +76,28 @@ export function SmartGuard({ isShieldActive, onRefresh, className }: SmartGuardP
 
       {/* ── THE CLICK SHIELD ── 
           Prevents accidental clicks during ad-trigger windows.
+          Stays active until the user intentionally dismisses it.
       */}
-      {isShieldActive && (
-        <div className="absolute inset-0 pointer-events-auto bg-transparent cursor-default" />
+      {!isDismissed && isShieldActive && (
+        <div 
+          onClick={handleDismiss}
+          className={cn(
+            "absolute inset-0 pointer-events-auto bg-black/5 cursor-pointer flex items-center justify-center transition-opacity duration-500",
+            !isPreparing ? "opacity-100" : "opacity-0"
+          )}
+        >
+          {!isPreparing && (
+            <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+              <div className="w-16 h-16 rounded-full bg-[--flx-cyan] flex items-center justify-center shadow-[0_0_30px_rgba(0,255,242,0.4)] animate-pulse">
+                <Shield size={24} className="text-black" />
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] font-black uppercase tracking-[3px] text-[--flx-cyan]">Cinema Guard Active</p>
+                <p className="text-[8px] font-bold text-white/40 uppercase tracking-[2px] mt-1">Click anywhere to start playing</p>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* SmartGuard Active Indicator */}
