@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useActionState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Shield, Eye, Save, Camera, Image as ImageIcon, ChevronRight, Check, Loader2 } from 'lucide-react';
+import { User, Shield, Eye, Camera, Image as ImageIcon, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { getUserProfile, updateProfile } from '@/lib/supabase/actions/auth';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types/supabase';
@@ -254,21 +254,21 @@ export default function SettingsPage() {
                   )}
                 </div>
 
-                {/* Footer Actions - ALWAYS VISIBLE */}
-                <div className="sticky bottom-0 pt-6 pb-2 bg-[--flx-bg] border-t border-white/5 flex items-center justify-end gap-6 z-30">
+                {/* Footer Actions - PROMINENT & VISIBLE */}
+                <div className="pt-10 pb-4 flex items-center justify-end gap-6 border-t border-white/10 mt-10">
                    <button 
                     type="button" 
                     onClick={() => window.location.reload()}
-                    className="text-[10px] font-bold uppercase tracking-widest text-[--flx-text-3] hover:text-[--flx-text-2] transition-colors cursor-pointer"
+                    className="text-[11px] font-bold uppercase tracking-widest text-[--flx-text-3] hover:text-[--flx-text-1] transition-colors cursor-pointer"
                    >
-                     Discard
+                     Discard Changes
                    </button>
                    <button 
                     disabled={isPending || uploading !== null}
                     type="submit"
-                    className="flex items-center gap-2.5 px-10 py-4 bg-[--flx-cyan] text-black font-bold text-[11px] uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[--flx-cyan]/20 disabled:opacity-50 disabled:scale-100 cursor-pointer"
+                    className="flex items-center gap-3 px-12 py-5 bg-white text-black font-black text-[12px] uppercase tracking-[2px] rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_20px_40px_rgba(255,255,255,0.1)] disabled:opacity-30 disabled:grayscale cursor-pointer"
                    >
-                     {isPending ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                     {isPending ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} className="text-green-600" />}
                      Save Changes
                    </button>
                 </div>
