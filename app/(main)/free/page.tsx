@@ -1,14 +1,46 @@
-import { getFreeFilms } from '@/lib/supabase/actions/free-films';
+import { getFreeFilms, type FreeFilm } from '@/lib/supabase/actions/free-films';
 import { MovieCard } from '@/components/movie/MovieCard';
-
+import { tmdb } from '@/lib/tmdb';
 
 export const metadata = {
   title: 'Watch Free Movies Online | Flixora',
   description: 'Stream hundreds of high-quality, verified free films and public domain classics in 1080p. No subscription required for these titles.',
 };
 
+interface EnrichedFreeFilm extends FreeFilm {
+  vote_average?: number;
+  release_date?: string;
+}
+
 export default async function FreeFilmsPage() {
   const freeFilms = await getFreeFilms();
+
+  // Enrich films with TMDB metadata for posters and info
+  const enrichedFilms: EnrichedFreeFilm[] = await Promise.all(
+    freeFilms.map(async (film) => {
+      try {
+        if (film.media_type === 'movie') {
+          const metadata = await tmdb.movies.detail(film.tmdb_id, { silent: true });
+          return {
+            ...film,
+            poster_path: metadata.poster_path ?? film.poster_path,
+            vote_average: metadata.vote_average,
+            release_date: metadata.release_date,
+          };
+        } else {
+          const metadata = await tmdb.tv.detail(film.tmdb_id, { silent: true });
+          return {
+            ...film,
+            poster_path: metadata.poster_path ?? film.poster_path,
+            vote_average: metadata.vote_average,
+            release_date: metadata.first_air_date,
+          };
+        }
+      } catch {
+        return film;
+      }
+    })
+  );
 
   return (
     <div className="min-h-screen bg-[--flx-bg] pb-20 pt-28 px-4 md:px-8 lg:px-12">
@@ -61,17 +93,17 @@ export default async function FreeFilmsPage() {
           <div className="h-px flex-1 bg-white/5 mx-8 hidden md:block" />
         </div>
 
-        {freeFilms.length > 0 ? (
+        {enrichedFilms.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {freeFilms.map((film) => (
+            {enrichedFilms.map((film) => (
               <MovieCard
                 key={film.id}
                 id={film.tmdb_id}
                 title={film.title}
                 posterPath={film.poster_path ?? null}
-                rating={8.5} // Default for verified classics or fetch from TMDB?
-                releaseDate="Classic"
-                mediaType="movie"
+                rating={film.vote_average ?? 8.5}
+                releaseDate={film.release_date ?? "Classic"}
+                mediaType={film.media_type}
                 isFree={true}
               />
             ))}
