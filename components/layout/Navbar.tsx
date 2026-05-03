@@ -17,7 +17,7 @@ const NAV_LINKS = [
   { href: '/movies',  label: 'Movies' },
   { href: '/series',  label: 'Series' },
   { href: '/search',  label: 'Trending' },
-  { href: '/profile', label: 'My List' },
+  { href: '/my-list', label: 'My List' },
 ];
 
 export function Navbar() {

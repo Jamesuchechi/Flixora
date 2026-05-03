@@ -6,6 +6,8 @@ import { getYear } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import type { TMDBSearchResult } from '@/types/tmdb';
 
+import { SearchInput } from '@/components/search/SearchInput';
+
 interface Props {
   searchParams: Promise<{ q?: string }>;
 }
@@ -32,38 +34,24 @@ export default async function SearchPage({ searchParams }: Props) {
   );
 
   return (
-    <div className="min-h-screen px-6 md:px-10 py-12">
+    <div className="min-h-screen px-6 md:px-10 py-24">
+      {/* ── Search Input Section ── */}
+      <SearchInput />
+
       {/* ── Search Header ── */}
-      <div className="mb-12 space-y-2">
-        <div className="flex items-center gap-4">
-          <h1 className="font-bebas text-5xl tracking-[4px] text-[--flx-text-1] uppercase">
-            {q ? 'Results' : 'Search'}
-          </h1>
-          {q && (
+      {q && (
+        <div className="mb-12 space-y-2">
+          <div className="flex items-center gap-4">
+            <h1 className="font-bebas text-5xl tracking-[4px] text-[--flx-text-1] uppercase">
+              Results
+            </h1>
             <Badge variant="cyan" className="mt-1.5 px-3 py-1">
               &quot;{q}&quot;
             </Badge>
-          )}
-        </div>
-        {q && (
+          </div>
           <p className="text-[11px] font-bold text-[--flx-text-3] uppercase tracking-[2px]">
             Found {items.length} matching title{items.length !== 1 ? 's' : ''}
           </p>
-        )}
-      </div>
-
-      {/* ── Empty State ── */}
-      {!q && (
-        <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
-          <div className="w-20 h-20 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-[--flx-text-3]">
-             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-xl font-semibold text-[--flx-text-1]">Ready to explore?</h3>
-            <p className="text-sm text-[--flx-text-3] max-w-xs mx-auto">
-              Use the search bar at the top or press <kbd className="bg-white/5 px-2 py-1 rounded border border-white/10 mx-1">⌘K</kbd> to find your favorite movies and series.
-            </p>
-          </div>
         </div>
       )}
 

@@ -1,4 +1,12 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+
+export const viewport: Viewport = {
+  themeColor: '#06070d',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 import { Outfit, Bebas_Neue } from 'next/font/google';
 import './globals.css';
 
@@ -18,12 +26,26 @@ const bebasNeue = Bebas_Neue({
 export const metadata: Metadata = {
   title: { default: 'Flixora', template: '%s | Flixora' },
   description: 'Stream movies and series in stunning cinematic quality.',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Flixora',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
+
+import { PWARegistration } from '@/components/layout/PWARegistration';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${outfit.variable} ${bebasNeue.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <PWARegistration />
+        {children}
+      </body>
     </html>
   );
 }

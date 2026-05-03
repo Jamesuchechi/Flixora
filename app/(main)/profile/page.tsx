@@ -1,27 +1,23 @@
 'use client';
 
-import { useStore } from '@/store/useStore';
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { cn, getYear, BLUR_DATA_URL } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { Settings, LogOut, Camera, Calendar, User, Heart, Clock, Play } from 'lucide-react';
+import { Settings, LogOut, Camera, Calendar, User, Clock } from 'lucide-react';
 import { getUserProfile, signOut } from '@/lib/supabase/actions/auth';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Profile } from '@/types/supabase';
-import { tmdb } from '@/lib/tmdb';
-import { MovieCardSkeleton } from '@/components/ui/Skeleton';
 import { Badge } from '@/components/ui/Badge';
-import type { TMDBMovie, TMDBTVShow } from '@/types/tmdb';
+
 
 export default function ProfilePage() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'watchlist' | 'history' | 'settings'>('watchlist');
-  
-  const watchlist = useStore((s) => s.watchlist);
+  const [activeTab, setActiveTab] = useState<'history' | 'settings'>('history');
 
   useEffect(() => {
     async function loadData() {
@@ -36,7 +32,6 @@ export default function ProfilePage() {
   }, []);
 
   const TABS = [
-    { id: 'watchlist', label: 'Watchlist', icon: Heart },
     { id: 'history',   label: 'History',   icon: Clock },
     { id: 'settings',  label: 'Settings',  icon: Settings },
   ] as const;
@@ -168,20 +163,6 @@ export default function ProfilePage() {
 
         {/* ── CONTENT (Netflix Inspired) ── */}
         <div className="space-y-16">
-          {activeTab === 'watchlist' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-               {watchlist.length === 0 ? (
-                 <EmptyState 
-                    title="Your list is waiting" 
-                    desc="Start adding your favorite movies and series to keep track of them."
-                    icon={Heart}
-                 />
-               ) : (
-                 <WatchlistGrid ids={watchlist} />
-               )}
-            </div>
-          )}
-
           {activeTab === 'history' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                <EmptyState 
@@ -247,82 +228,9 @@ function EmptyState({ title, desc, icon: Icon }: { title: string; desc: string; 
         <h3 className="text-2xl font-bebas tracking-wider text-[--flx-text-1] uppercase">{title}</h3>
         <p className="text-sm text-[--flx-text-3] leading-relaxed">{desc}</p>
       </div>
-      <Link href="/movies" className="flex items-center gap-2.5 bg-white text-black font-bold text-[11px] uppercase tracking-widest px-8 py-3.5 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/5">
+      <Link href="/home" className="flex items-center gap-2.5 bg-white text-black font-bold text-[11px] uppercase tracking-widest px-8 py-3.5 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/5">
         Explore Content
       </Link>
-    </div>
-  );
-}
-
-function WatchlistGrid({ ids }: { ids: number[] }) {
-  const [data, setData] = useState<(TMDBMovie | TMDBTVShow)[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchItems() {
-      try {
-        const results = await Promise.all(
-          ids.map(id => tmdb.movies.detail(id, { silent: true }).catch(() => tmdb.tv.detail(id, { silent: true }).catch(() => null)))
-        );
-        setData(results.filter((item): item is (TMDBMovie | TMDBTVShow) => item !== null));
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchItems();
-  }, [ids]);
-
-  if (loading) {
-    return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-        {Array.from({ length: ids.length }).map((_, i) => <MovieCardSkeleton key={i} />)}
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-      {data.map((item, i) => {
-        const isMovie = 'title' in item;
-        const title = isMovie ? (item as TMDBMovie).title : (item as TMDBTVShow).name;
-        const date = isMovie ? (item as TMDBMovie).release_date : (item as TMDBTVShow).first_air_date;
-
-        return (
-          <Link 
-            key={item.id} 
-            href={`/${isMovie ? 'movies' : 'series'}/${item.id}`}
-            className="group animate-in fade-in slide-in-from-bottom-2 duration-500"
-            style={{ animationDelay: `${i * 50}ms` }}
-          >
-            <div className="relative aspect-2/3 rounded-2xl overflow-hidden bg-[--flx-surface-2] border border-white/5 transition-all duration-500 group-hover:-translate-y-2 group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.6)] group-hover:border-[--flx-purple]/40">
-               <Image 
-                  src={tmdb.image(item.poster_path, 'w342')} 
-                  alt={title} 
-                  fill 
-                  className="object-cover transition-transform duration-700 group-hover:scale-110"
-                  sizes="(max-width: 768px) 50vw, 200px"
-                  placeholder="blur"
-                  blurDataURL={BLUR_DATA_URL}
-               />
-               <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center mb-2">
-                     <Play size={14} fill="black" className="ml-0.5" />
-                  </div>
-                  <p className="text-[10px] font-bold text-white uppercase tracking-widest">{isMovie ? 'Movie' : 'Series'}</p>
-               </div>
-            </div>
-            <div className="mt-3 px-1">
-              <h4 className="text-[12px] font-bold text-[--flx-text-1] truncate group-hover:text-[--flx-cyan] transition-colors">{title}</h4>
-              <div className="flex items-center gap-2 mt-1">
-                 <span className="text-[10px] text-[--flx-gold] font-bold">★ {item.vote_average.toFixed(1)}</span>
-                 <span className="text-[10px] text-[--flx-text-3] font-bold tracking-tighter">{getYear(date)}</span>
-              </div>
-            </div>
-          </Link>
-        );
-      })}
     </div>
   );
 }

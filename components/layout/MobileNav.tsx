@@ -9,7 +9,7 @@ import { useStore } from '@/store/useStore';
 const NAV_ITEMS = [
   { icon: Home,    label: 'Home',     href: '/home' },
   { icon: Compass, label: 'Explore',  href: '/search' },
-  { icon: List,    label: 'My List',  href: '/profile' },
+  { icon: List,    label: 'My List',  href: '/my-list' },
   { icon: User,    label: 'Profile',  href: '/profile' },
 ];
 
