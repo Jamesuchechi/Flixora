@@ -6,6 +6,11 @@ import { usePathname } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
 import { UserMenu } from './UserMenu';
+import dynamic from 'next/dynamic';
+
+const SearchOverlay = dynamic(() => import('@/components/search/SearchOverlay').then(mod => mod.SearchOverlay), {
+  ssr: false
+});
 
 const NAV_LINKS = [
   { href: '/home',    label: 'Home' },
@@ -77,6 +82,8 @@ export function Navbar() {
         {/* User Menu - Always visible for quick access */}
         <UserMenu />
       </div>
+
+      <SearchOverlay />
     </nav>
   );
 }

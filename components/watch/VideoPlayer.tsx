@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Play, SkipForward, Tv, Server, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { YouTubePlayer } from './YouTubePlayer';
 
 interface VideoPlayerProps {
   tmdbId: number;
@@ -12,14 +13,14 @@ interface VideoPlayerProps {
   backdrop: string;
   season?: number;
   episode?: number;
-  youtubeId?: string;
+  youtubeId?: string; // For trailers
+  fullFilmYoutubeId?: string; // For verified free full films
   nextEpisodeUrl?: string;
 }
-
 const SERVERS = [
-  { id: 'vidsrc', name: 'Server 1 (Pro)', url: 'https://vidsrc.xyz/embed/' },
-  { id: 'vidsrc_to', name: 'Server 2 (HD)', url: 'https://vidsrc.to/embed/' },
-  { id: 'embed_su', name: 'Server 3 (Multi)', url: 'https://embed.su/embed/' },
+  { id: 'vidsrc_to', name: 'Server 1 (Clean)', url: 'https://vidsrc.to/embed/' },
+  { id: 'embed_su', name: 'Server 2 (Multi)', url: 'https://embed.su/embed/' },
+  { id: 'vidsrc', name: 'Server 3 (Legacy)', url: 'https://vidsrc.xyz/embed/' },
 ];
 
 export function VideoPlayer({
@@ -29,10 +30,13 @@ export function VideoPlayer({
   season,
   episode,
   youtubeId,
+  fullFilmYoutubeId,
   nextEpisodeUrl
 }: VideoPlayerProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<'player' | 'trailer'>('player');
+  const [mode, setMode] = useState<'player' | 'trailer' | 'free'>(
+    fullFilmYoutubeId ? 'free' : 'player'
+  );
   const [activeServer, setActiveServer] = useState(SERVERS[0]);
   const [showServerList, setShowServerList] = useState(false);
 
@@ -54,7 +58,7 @@ export function VideoPlayer({
   return (
     <div className="relative w-full aspect-video rounded-[32px] overflow-hidden bg-[#090514] shadow-2xl border border-white/5 group">
       
-      {/* Player Mode (Real Movie/Episode Stream) */}
+      {/* Player Modes */}
       {mode === 'player' ? (
         <div className="w-full h-full relative">
           <iframe
@@ -66,16 +70,21 @@ export function VideoPlayer({
             allow="autoplay; encrypted-media; picture-in-picture"
           />
         </div>
+      ) : mode === 'free' && fullFilmYoutubeId ? (
+        <div className="relative w-full h-full bg-black">
+          <YouTubePlayer 
+            videoId={fullFilmYoutubeId} 
+            title={title} 
+          />
+        </div>
       ) : (
         /* Trailer Mode (YouTube) */
         <div className="relative w-full h-full bg-black">
           {youtubeId ? (
-            <iframe
-              src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&modestbranding=1&rel=0`}
-              title={`Trailer for ${title}`}
-              className="w-full h-full border-none z-10 relative opacity-80"
-              allow="autoplay; encrypted-media; picture-in-picture"
-              allowFullScreen
+            <YouTubePlayer 
+              videoId={youtubeId} 
+              title={title} 
+              onEnd={() => setMode('player')} 
             />
           ) : (
              <div className="absolute inset-0 flex items-center justify-center">
@@ -90,6 +99,18 @@ export function VideoPlayer({
         <div className="flex gap-2 pointer-events-auto">
           {/* Main Toggle */}
           <div className="flex p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl">
+            {fullFilmYoutubeId && (
+              <button 
+                onClick={() => setMode('free')}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
+                  mode === 'free' ? "bg-[--flx-cyan] text-black shadow-lg" : "text-white/60 hover:text-white"
+                )}
+              >
+                <div className="w-2 h-2 rounded-full bg-black animate-pulse" />
+                WATCH FREE (NO ADS)
+              </button>
+            )}
             <button 
               onClick={() => setMode('player')}
               aria-label="Switch to movie stream"
