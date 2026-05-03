@@ -1,8 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { tmdb } from '@/lib/tmdb';
 import { Badge } from '@/components/ui/Badge';
 import { FeaturedCardSkeleton } from '@/components/ui/Skeleton';
+import { BLUR_DATA_URL } from '@/lib/utils';
 import type { TMDBTVShow } from '@/types/tmdb';
 
 interface FeaturedCardProps {
@@ -11,14 +13,28 @@ interface FeaturedCardProps {
 }
 
 export function FeaturedCard({ show, episodeInfo }: FeaturedCardProps) {
+  const router = useRouter();
   const backdrop = tmdb.image(show.backdrop_path ?? show.poster_path, 'w780');
+  const href = `/series/${show.id}`;
 
   return (
-    <Link href={`/series/${show.id}`} className="flex-shrink-0 relative w-[290px] h-[165px] rounded-xl overflow-hidden group cursor-pointer block">
-      <Image src={backdrop} alt={show.name} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="290px" />
+    <Link 
+      href={href} 
+      className="shrink-0 relative w-[290px] h-[165px] rounded-xl overflow-hidden group cursor-pointer block"
+      onMouseEnter={() => router.prefetch(href)}
+    >
+      <Image 
+        src={backdrop} 
+        alt={show.name} 
+        fill 
+        className="object-cover transition-transform duration-300 group-hover:scale-105" 
+        sizes="290px"
+        placeholder="blur"
+        blurDataURL={BLUR_DATA_URL}
+      />
 
       {/* Overlays */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[--flx-bg]/95 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-t from-[--flx-bg]/95 via-transparent to-transparent" />
       <div className="absolute inset-0 border-2 border-[--flx-purple]/0 group-hover:border-[--flx-purple]/40 rounded-xl transition-all duration-200" />
 
       {/* Play icon */}

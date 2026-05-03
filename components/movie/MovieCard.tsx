@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { tmdb } from '@/lib/tmdb';
-import { cn, getYear } from '@/lib/utils';
+import { cn, getYear, BLUR_DATA_URL } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
 
 interface MovieCardProps {
@@ -21,6 +22,7 @@ export function MovieCard({
   id, title, posterPath, rating, releaseDate,
   mediaType = 'movie', rank, className,
 }: MovieCardProps) {
+  const router = useRouter();
   const isInWatchlist   = useStore((s) => s.isInWatchlist);
   const addToWatchlist  = useStore((s) => s.addToWatchlist);
   const removeFromWatchlist = useStore((s) => s.removeFromWatchlist);
@@ -28,8 +30,11 @@ export function MovieCard({
   const href  = `/${mediaType === 'tv' ? 'series' : 'movies'}/${id}`;
 
   return (
-    <div className={cn('shrink-0 w-[140px] group cursor-pointer', className)}>
-      <Link href={href}>
+    <div className={cn('shrink-0 w-[140px] group cursor-pointer snap-start', className)}>
+      <Link 
+        href={href}
+        onMouseEnter={() => router.prefetch(href)}
+      >
         <div className="relative w-[140px] h-[210px] rounded-xl overflow-hidden mb-2.5 transition-transform duration-200 group-hover:-translate-y-1">
           <Image
             src={tmdb.image(posterPath, 'w342')}
@@ -37,6 +42,8 @@ export function MovieCard({
             fill
             className="object-cover"
             sizes="140px"
+            placeholder="blur"
+            blurDataURL={BLUR_DATA_URL}
           />
 
           {/* Rank ghost number */}
@@ -58,8 +65,13 @@ export function MovieCard({
           <button
             onClick={(e) => {
               e.preventDefault();
-              saved ? removeFromWatchlist(id) : addToWatchlist(id);
+              if (saved) {
+                removeFromWatchlist(id);
+              } else {
+                addToWatchlist(id);
+              }
             }}
+            aria-label={saved ? "Remove from watchlist" : "Add to watchlist"}
             className={cn(
               'absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all',
               'opacity-0 group-hover:opacity-100',
@@ -73,13 +85,13 @@ export function MovieCard({
             </svg>
           </button>
         </div>
-      </Link>
 
-      <p className="text-[12px] font-medium text-[--flx-text-1] truncate mb-0.5">{title}</p>
-      <div className="flex items-center gap-1.5 text-[10px] text-[--flx-text-3]">
-        <span className="text-[--flx-gold] font-semibold">★ {rating.toFixed(1)}</span>
-        {releaseDate && <span>{getYear(releaseDate)}</span>}
-      </div>
+        <p className="text-[12px] font-medium text-[--flx-text-1] truncate mb-0.5">{title}</p>
+        <div className="flex items-center gap-1.5 text-[10px] text-[--flx-text-3]">
+          <span className="text-[--flx-gold] font-semibold">★ {rating.toFixed(1)}</span>
+          {releaseDate && <span>{getYear(releaseDate)}</span>}
+        </div>
+      </Link>
     </div>
   );
 }

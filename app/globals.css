@@ -54,4 +54,10 @@
   .animate-pulse-dot  { animation: pulse-dot 2s ease-in-out infinite; }
   .animate-fade-up    { animation: fade-up 0.5s ease both; }
   .animate-shimmer    { animation: shimmer 2s infinite; }
+
+  /* Focus ring for keyboard users */
+  :focus-visible {
+    outline: 2px solid var(--flx-cyan);
+    outline-offset: 2px;
+  }
 }

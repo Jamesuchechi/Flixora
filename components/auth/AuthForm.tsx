@@ -2,7 +2,6 @@
 
 import { useActionState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { signIn, signUp, signInWithGoogle, type AuthState } from '@/lib/actions/auth';
 import { cn } from '@/lib/utils';
 import { Mail, Lock, User } from 'lucide-react';
@@ -15,7 +14,6 @@ interface AuthFormProps {
 const initialState: AuthState = {};
 
 export function AuthForm({ mode, redirectError }: AuthFormProps) {
-  const router = useRouter();
   const action = mode === 'login' ? signIn : signUp;
   const [state, formAction, pending] = useActionState(action, initialState);
 
@@ -26,8 +24,11 @@ export function AuthForm({ mode, redirectError }: AuthFormProps) {
   }, [state, mode]);
 
   const handleGoogle = async () => {
-    const result = await signInWithGoogle();
-    if ('url' in result) router.push(result.url);
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      console.error('Google Sign-in failed:', err);
+    }
   };
 
   const inputWrapper = "relative group";

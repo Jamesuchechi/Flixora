@@ -75,7 +75,7 @@ export async function signOut(): Promise<void> {
 }
 
 // ── Google OAuth ───────────────────────────────────────────────────────────────
-export async function signInWithGoogle(): Promise<{ url: string } | { error: string }> {
+export async function signInWithGoogle(): Promise<void> {
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -86,8 +86,8 @@ export async function signInWithGoogle(): Promise<{ url: string } | { error: str
     },
   });
 
-  if (error) return { error: error.message };
-  return { url: data.url };
+  if (error) throw new Error(error.message);
+  if (data.url) redirect(data.url);
 }
 
 // ── Get Session ────────────────────────────────────────────────────────────────

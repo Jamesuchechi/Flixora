@@ -59,6 +59,27 @@ export default async function MovieDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen pb-20">
+      {/* Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Movie",
+            "name": movie.title,
+            "image": posterUrl,
+            "description": movie.overview,
+            "datePublished": movie.release_date,
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": movie.vote_average,
+              "bestRating": "10",
+              "ratingCount": movie.vote_count
+            }
+          })
+        }}
+      />
+
       {/* Hero Section */}
       <section className="relative h-[75vh] min-h-[600px] w-full overflow-hidden">
         <div className="absolute inset-0 z-0">

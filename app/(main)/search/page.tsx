@@ -69,7 +69,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
       {/* ── Results Grid ── */}
       {items.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8">
           {items.map((item, i) => {
             const isMovie = item.media_type === 'movie';
             const title   = item.title ?? item.name ?? 'Unknown Title';

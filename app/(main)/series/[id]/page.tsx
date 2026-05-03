@@ -59,6 +59,27 @@ export default async function SeriesDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen pb-20">
+      {/* Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "TVSeries",
+            "name": show.name,
+            "image": posterUrl,
+            "description": show.overview,
+            "datePublished": show.first_air_date,
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": show.vote_average,
+              "bestRating": "10",
+              "ratingCount": show.vote_count
+            }
+          })
+        }}
+      />
+
       {/* ── IMMERSIVE HERO SECTION ── */}
       <section className="relative h-[75vh] min-h-[600px] w-full overflow-hidden">
         {/* Cinematic Backdrop */}

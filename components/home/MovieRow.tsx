@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import type { TMDBMovie, TMDBTVShow } from '@/types/tmdb';
+import { motion } from 'framer-motion';
 
 type MediaItem = (TMDBMovie | TMDBTVShow) & { media_type?: 'movie' | 'tv' };
 
@@ -21,7 +22,13 @@ export function MovieRow({
   title, items, pill, seeAllHref, showRank, loading, className,
 }: MovieRowProps) {
   return (
-    <section className={cn('px-10 py-7', className)}>
+    <motion.section 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className={cn('px-10 py-7', className)}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <h2 className="font-bebas text-xl tracking-[2px] text-[--flx-text-1] flex items-center gap-2.5">
@@ -36,7 +43,7 @@ export function MovieRow({
       </div>
 
       {/* Scroll row */}
-      <div className="flex gap-3.5 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-3.5 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory scroll-smooth -mx-10 px-10">
         {loading
           ? Array.from({ length: 7 }).map((_, i) => <MovieCardSkeleton key={i} />)
           : items.map((item, i) => {
@@ -64,6 +71,6 @@ export function MovieRow({
               );
             })}
       </div>
-    </section>
+    </motion.section>
   );
 }

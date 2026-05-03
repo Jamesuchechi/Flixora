@@ -60,6 +60,7 @@ export function VideoPlayer({
           <iframe
             key={`${activeServer.id}-${tmdbId}-${season}-${episode}`}
             src={getStreamUrl()}
+            title={`Video player for ${title}`}
             className="w-full h-full border-none z-10 relative"
             allowFullScreen
             allow="autoplay; encrypted-media; picture-in-picture"
@@ -71,6 +72,7 @@ export function VideoPlayer({
           {youtubeId ? (
             <iframe
               src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&modestbranding=1&rel=0`}
+              title={`Trailer for ${title}`}
               className="w-full h-full border-none z-10 relative opacity-80"
               allow="autoplay; encrypted-media; picture-in-picture"
               allowFullScreen
@@ -90,6 +92,7 @@ export function VideoPlayer({
           <div className="flex p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl">
             <button 
               onClick={() => setMode('player')}
+              aria-label="Switch to movie stream"
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
                 mode === 'player' ? "bg-white text-black shadow-lg" : "text-white/60 hover:text-white"
@@ -100,6 +103,7 @@ export function VideoPlayer({
             </button>
             <button 
               onClick={() => setMode('trailer')}
+              aria-label="Switch to trailer"
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
                 mode === 'trailer' ? "bg-[--flx-purple] text-white shadow-lg" : "text-white/60 hover:text-white"
@@ -115,6 +119,8 @@ export function VideoPlayer({
             <div className="relative">
               <button 
                 onClick={() => setShowServerList(!showServerList)}
+                aria-label="Select streaming server"
+                aria-expanded={showServerList}
                 className="flex items-center gap-2 px-4 py-3 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl text-[10px] font-bold text-white tracking-widest hover:bg-black/60 transition-all"
               >
                 <Server size={12} className="text-[--flx-cyan]" />
@@ -157,6 +163,7 @@ export function VideoPlayer({
       {mediaType === 'tv' && nextEpisodeUrl && (
         <button 
           onClick={() => router.push(nextEpisodeUrl)}
+          aria-label={`Watch next episode: Season ${season} Episode ${Number(episode || 0) + 1}`}
           className="absolute bottom-8 right-8 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-all active:scale-95 group/next shadow-2xl opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 duration-500"
         >
           <div className="text-right">

@@ -62,3 +62,6 @@ export function debounce<T extends (...args: any[]) => any>(fn: T, delay: number
     timer = setTimeout(() => fn(...args), delay);
   };
 }
+
+/** Grey 1x1 base64 pixel for Image blur placeholder */
+export const BLUR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA6ie6hQAAAABJRU5ErkJggg==';

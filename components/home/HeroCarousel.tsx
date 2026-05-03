@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Play, Info, Plus, Star } from 'lucide-react';
 import { tmdb } from '@/lib/tmdb';
 import { Badge } from '@/components/ui/Badge';
-import { formatRuntime, getYear } from '@/lib/utils';
+import { formatRuntime, getYear, BLUR_DATA_URL } from '@/lib/utils';
 import type { TMDBMovie, TMDBTVShow } from '@/types/tmdb';
 
 type AnyMedia = (TMDBMovie | TMDBTVShow) & { media_type: 'movie' | 'tv' };
@@ -17,6 +17,7 @@ interface HeroCarouselProps {
 }
 
 export function HeroCarousel({ items }: HeroCarouselProps) {
+  const shouldReduceMotion = useReducedMotion();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0); // 1 for next, -1 for prev
 
@@ -49,8 +50,8 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
   const variants = {
     enter: () => ({
       opacity: 0,
-      scale: 1.1,
-      filter: 'blur(10px)',
+      scale: shouldReduceMotion ? 1 : 1.1,
+      filter: shouldReduceMotion ? 'blur(0px)' : 'blur(10px)',
     }),
     center: {
       zIndex: 1,
@@ -61,15 +62,15 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
     exit: () => ({
       zIndex: 0,
       opacity: 0,
-      scale: 0.95,
-      filter: 'blur(10px)',
+      scale: shouldReduceMotion ? 1 : 0.95,
+      filter: shouldReduceMotion ? 'blur(0px)' : 'blur(10px)',
     }),
   };
 
   const textVariants = {
-    initial: { opacity: 0, y: 20 },
+    initial: { opacity: 0, y: shouldReduceMotion ? 0 : 20 },
     animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20 },
+    exit: { opacity: 0, y: shouldReduceMotion ? 0 : -20 },
   };
 
   return (
@@ -93,11 +94,13 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
           <div className="absolute inset-0">
             <Image
               src={backdrop}
-              alt={title}
+              alt=""
               fill
               className="object-cover object-top opacity-40"
               priority
               sizes="100vw"
+              placeholder="blur"
+              blurDataURL={BLUR_DATA_URL}
             />
           </div>
 
@@ -108,10 +111,12 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
       </AnimatePresence>
 
       {/* Aurora orbs */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute w-[800px] h-[500px] -top-48 -left-32 rounded-full bg-[--flx-purple]/20 blur-[100px] animate-aurora" style={{ animationDelay: '0s' }} />
-        <div className="absolute w-[600px] h-[400px] top-0 -right-24 rounded-full bg-[--flx-cyan]/15 blur-[100px] animate-aurora" style={{ animationDelay: '-3s' }} />
-      </div>
+      {!shouldReduceMotion && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute w-[800px] h-[500px] -top-48 -left-32 rounded-full bg-[--flx-purple]/20 blur-[100px] animate-aurora" style={{ animationDelay: '0s' }} />
+          <div className="absolute w-[600px] h-[400px] top-0 -right-24 rounded-full bg-[--flx-cyan]/15 blur-[100px] animate-aurora" style={{ animationDelay: '-3s' }} />
+        </div>
+      )}
 
       {/* Content */}
       <div className="relative z-10 flex h-full px-12 items-center">
@@ -176,7 +181,10 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                   <Info size={18} />
                   More Info
                 </Link>
-                <button className="w-[52px] h-[52px] flex items-center justify-center bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/10 text-white rounded-xl transition-all hover:rotate-90 cursor-pointer">
+                <button 
+                  aria-label="Add to My List"
+                  className="w-[52px] h-[52px] flex items-center justify-center bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/10 text-white rounded-xl transition-all hover:rotate-90 cursor-pointer"
+                >
                   <Plus size={22} />
                 </button>
               </div>
@@ -192,12 +200,13 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                return (
                  <motion.button
                    key={item.id}
-                   whileHover={{ y: -10, scale: 1.05 }}
+                   whileHover={shouldReduceMotion ? {} : { y: -10, scale: 1.05 }}
                    whileTap={{ scale: 0.95 }}
                    onClick={() => {
                      setDirection(idx + 1 > 0 ? 1 : -1);
                      setCurrentIndex(items.findIndex(i => i.id === item.id));
                    }}
+                   aria-label={`Switch to ${t}`}
                    className={`relative rounded-2xl overflow-hidden transition-all duration-500 shadow-2xl group
                      ${idx === 0 ? 'w-[160px] h-[240px] opacity-100 ring-2 ring-[--flx-purple]/50' : 
                        idx === 1 ? 'w-[130px] h-[190px] opacity-60 hover:opacity-100' : 
@@ -206,10 +215,12 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                  >
                    <Image 
                      src={tmdb.image(item.poster_path, 'w342')} 
-                     alt={t} 
+                     alt="" 
                      fill 
                      className="object-cover"
                      sizes="200px"
+                     placeholder="blur"
+                     blurDataURL={BLUR_DATA_URL}
                    />
                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                      <p className="text-[10px] font-bold text-white truncate">{t}</p>
@@ -220,19 +231,25 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
           </div>
           
           {/* Progress Indicators */}
-          <div className="flex gap-2 pr-4">
-            {items.slice(0, 5).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  setDirection(i > currentIndex ? 1 : -1);
-                  setCurrentIndex(i);
-                }}
-                className={`h-1 rounded-full transition-all duration-500 ${
-                  i === currentIndex ? 'w-8 bg-[--flx-purple]' : 'w-2 bg-white/20 hover:bg-white/40'
-                }`}
-              />
-            ))}
+          <div className="flex gap-2 pr-4" role="tablist">
+            {items.slice(0, 5).map((item, i) => {
+              const t = 'title' in item ? (item as TMDBMovie).title : (item as TMDBTVShow).name;
+              return (
+                <button
+                  key={i}
+                  role="tab"
+                  aria-selected={i === currentIndex}
+                  aria-label={`Go to slide ${i + 1}: ${t}`}
+                  onClick={() => {
+                    setDirection(i > currentIndex ? 1 : -1);
+                    setCurrentIndex(i);
+                  }}
+                  className={`h-1 rounded-full transition-all duration-500 ${
+                    i === currentIndex ? 'w-8 bg-[--flx-purple]' : 'w-2 bg-white/20 hover:bg-white/40'
+                  }`}
+                />
+              );
+            })}
           </div>
         </div>
       </div>

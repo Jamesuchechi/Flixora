@@ -7,7 +7,12 @@ import { MovieRow } from '@/components/home/MovieRow';
 import { ExternalRatings } from '@/components/movie/ExternalRatings';
 import { StreamingAvailability } from '@/components/movie/StreamingAvailability';
 import { TVAiringStatus } from '@/components/movie/TVAiringStatus';
-import { VideoPlayer } from '@/components/watch/VideoPlayer';
+import dynamic from 'next/dynamic';
+
+const VideoPlayer = dynamic(() => import('@/components/watch/VideoPlayer').then(mod => mod.VideoPlayer), {
+  ssr: false,
+  loading: () => <div className="aspect-video w-full bg-white/5 animate-pulse rounded-2xl border border-white/10" />
+});
 
 interface Props {
   params: Promise<{ id: string }>;

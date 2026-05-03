@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 const BASE_URL = process.env.TMDB_BASE_URL ?? 'https://api.themoviedb.org/3';
 const API_KEY  = process.env.TMDB_API_KEY ?? '';
 
+export const runtime = 'edge';
+
 /**
  * Proxy route for TMDB requests to avoid exposing API keys on the client.
  */
@@ -38,7 +40,11 @@ export async function GET(
     }
 
     const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    });
   } catch (error) {
     console.error('TMDB Proxy Error:', error);
     return NextResponse.json(

@@ -104,7 +104,7 @@ export function SearchOverlay() {
       />
 
       {/* Search Modal */}
-      <div className="relative w-full max-w-3xl bg-[--flx-surface-1] border border-white/10 rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden animate-in zoom-in-95 fade-in duration-300">
+      <div className="relative w-full max-w-3xl h-full md:h-auto bg-[--flx-surface-1] md:border md:border-white/10 md:rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden animate-in zoom-in-95 fade-in duration-300">
         {/* Search Input */}
         <div className="flex items-center px-8 py-6 border-b border-white/5 gap-4">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--flx-purple]">
@@ -124,6 +124,7 @@ export function SearchOverlay() {
           />
           <button 
             onClick={handleClose}
+            aria-label="Close search"
             className="text-[--flx-text-3] hover:text-white transition-colors cursor-pointer"
           >
             <span className="text-xs font-bold uppercase tracking-widest bg-white/5 px-2 py-1 rounded border border-white/10">Esc</span>
