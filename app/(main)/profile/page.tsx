@@ -104,11 +104,13 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex items-center gap-3 pb-2">
-             <button className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10 transition-all cursor-pointer">
+             <Link 
+                href="/settings"
+                className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/10 transition-all cursor-pointer"
+             >
                 Edit Profile
-             </button>
+             </Link>
              <button 
                 onClick={() => signOut()}
                 className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white transition-all cursor-pointer"

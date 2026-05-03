@@ -65,6 +65,19 @@ export function VideoPlayer({
             allowFullScreen
             allow="autoplay; encrypted-media; picture-in-picture"
           />
+          
+          {/* AdGuard Overlay (Temporary) */}
+          <div className="absolute inset-0 z-11 pointer-events-none flex items-center justify-center animate-out fade-out fill-mode-forwards duration-1000 delay-3000">
+             <div className="bg-black/80 backdrop-blur-md px-8 py-5 rounded-[24px] border border-white/10 text-center space-y-2 pointer-events-auto">
+                <div className="flex justify-center gap-2 mb-2">
+                   <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                   <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse delay-100" />
+                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse delay-200" />
+                </div>
+                <h5 className="text-[10px] font-black uppercase tracking-[4px] text-[--flx-cyan]">Cinematic Guard Active</h5>
+                <p className="text-[11px] text-white/70 max-w-[280px]">Third-party server loading. If a pop-up appears, close it once to resume your cinematic experience.</p>
+             </div>
+          </div>
         </div>
       ) : mode === 'free' && fullFilmYoutubeId ? (
         <div className="relative w-full h-full bg-black">

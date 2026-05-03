@@ -6,17 +6,23 @@ export interface Database {
           id: string;
           username: string | null;
           avatar_url: string | null;
+          cover_url: string | null;
+          bio: string | null;
           created_at: string;
         };
         Insert: {
           id: string;
           username?: string | null;
           avatar_url?: string | null;
+          cover_url?: string | null;
+          bio?: string | null;
           created_at?: string;
         };
         Update: {
           username?: string | null;
           avatar_url?: string | null;
+          cover_url?: string | null;
+          bio?: string | null;
         };
       };
       watchlist: {

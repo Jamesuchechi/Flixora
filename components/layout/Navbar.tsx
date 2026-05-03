@@ -71,13 +71,14 @@ export function Navbar() {
         </button>
 
         {/* Notifications - Desktop only */}
-        <button 
+        <Link 
+          href="/notifications"
           aria-label="Notifications"
           className="hidden sm:flex relative w-[34px] h-[34px] items-center justify-center bg-white/5 hover:bg-white/10 border border-white/8 rounded-full transition-all cursor-pointer text-[--flx-text-2]"
         >
           <BellIcon />
           <span className="absolute top-[7px] right-[7px] w-[7px] h-[7px] bg-[--flx-pink] rounded-full border-[1.5px] border-[--flx-bg]" />
-        </button>
+        </Link>
 
         {/* User Menu - Always visible for quick access */}
         <UserMenu />

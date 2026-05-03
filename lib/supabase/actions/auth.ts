@@ -123,3 +123,32 @@ export async function getUserProfile() {
 
   return { user, profile };
 }
+
+/**
+ * Update the user's profile information.
+ */
+export async function updateProfile(_: AuthState, formData: FormData): Promise<AuthState> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: 'Not authenticated' };
+
+  const username   = formData.get('username') as string;
+  const bio        = formData.get('bio') as string;
+  const avatarUrl  = formData.get('avatar_url') as string;
+  const coverUrl   = formData.get('cover_url') as string;
+
+  const { error } = await supabase.from('profiles').upsert({
+    id: user.id,
+    username,
+    bio,
+    avatar_url: avatarUrl,
+    cover_url: coverUrl,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) return { error: error.message };
+
+  revalidatePath('/profile');
+  return { success: true };
+}
