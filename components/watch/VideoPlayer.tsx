@@ -1,13 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Play, SkipForward, Tv, Server, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { YouTubePlayer } from './YouTubePlayer';
-import { motion, AnimatePresence } from 'framer-motion';
+import { YouTubePlayer, YouTubePlayerRef } from './YouTubePlayer';
 import { updateWatchProgress } from '@/lib/supabase/actions/progress';
 import { ReportButton } from './ReportButton';
+import { SmartGuard } from './SmartGuard';
+import { SceneAssistant } from './SceneAssistant';
+import { Sparkles } from 'lucide-react';
+import { getSkipSegments, SkipSegment } from '@/lib/ai/skip-detection';
+import { SkipPrompt } from './SkipPrompt';
+import { updatePlaybackPreference, getUserPreferences, logSkipEvent } from '@/lib/supabase/actions/preferences';
 
 interface VideoPlayerProps {
   tmdbId: number;
@@ -19,6 +24,7 @@ interface VideoPlayerProps {
   youtubeId?: string; // For trailers
   fullFilmYoutubeId?: string; // For verified free full films
   nextEpisodeUrl?: string;
+  overview?: string;
 }
 const SERVERS = [
   { id: 'vidsrc_to', name: 'Server 1 (Clean)', url: 'https://vidsrc.to/embed/' },
@@ -34,7 +40,8 @@ export function VideoPlayer({
   episode,
   youtubeId,
   fullFilmYoutubeId,
-  nextEpisodeUrl
+  nextEpisodeUrl,
+  overview = ""
 }: VideoPlayerProps) {
   const router = useRouter();
   const [mode, setMode] = useState<'player' | 'trailer' | 'free'>(
@@ -42,10 +49,59 @@ export function VideoPlayer({
   );
   const [activeServer, setActiveServer] = useState(SERVERS[0]);
   const [showServerList, setShowServerList] = useState(false);
-  const [showAdGuard, setShowAdGuard] = useState(mode === 'player');
+  const [showAdGuard, setShowAdGuard] = useState(true);
+  const [playerKey, setPlayerKey] = useState(0);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [skipSegments, setSkipSegments] = useState<SkipSegment[]>([]);
+  const [autoSkipEnabled, setAutoSkipEnabled] = useState(false);
+  const youtubeRef = useRef<YouTubePlayerRef>(null);
+
+  useEffect(() => {
+    async function loadInitialData() {
+      const [segments, prefs] = await Promise.all([
+        getSkipSegments(tmdbId, mediaType, season, episode, fullFilmYoutubeId || youtubeId),
+        getUserPreferences()
+      ]);
+      setSkipSegments(segments);
+      if (prefs?.auto_skip_intros) setAutoSkipEnabled(true);
+    }
+    loadInitialData();
+  }, [tmdbId, mediaType, season, episode, fullFilmYoutubeId, youtubeId]);
+
+  // Handle Auto-Skip Logic
+  useEffect(() => {
+    if (autoSkipEnabled && skipSegments.length > 0) {
+      const currentSegment = skipSegments.find(s => currentTime >= s.startTime && currentTime < s.endTime);
+      if (currentSegment && youtubeRef.current) {
+        youtubeRef.current.seekTo(currentSegment.endTime);
+      }
+    }
+  }, [currentTime, autoSkipEnabled, skipSegments]);
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '?') {
+        e.preventDefault();
+        setIsAssistantOpen(prev => !prev);
+      }
+      if (e.key === 'Escape') {
+        setIsAssistantOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleRefresh = () => {
+    setPlayerKey(prev => prev + 1);
+    setShowAdGuard(true);
+  };
 
   const handleProgress = async (seconds: number, duration: number) => {
     if (duration > 0) {
+      setCurrentTime(seconds);
       const percent = Math.floor((seconds / duration) * 100);
       // Sync every 5% to avoid spamming
       if (percent % 5 === 0) {
@@ -93,40 +149,24 @@ export function VideoPlayer({
       {/* Player Modes */}
       {mode === 'player' ? (
         <div className="w-full h-full relative">
+          <SmartGuard 
+            isPlaying={!showAdGuard} 
+            onRefresh={handleRefresh}
+          />
           <iframe
-            key={`${activeServer.id}-${tmdbId}-${season}-${episode}`}
+            key={`${activeServer.id}-${tmdbId}-${season}-${episode}-${playerKey}`}
             src={getStreamUrl()}
             title={`Video player for ${title}`}
             className="w-full h-full border-none z-10 relative"
             allowFullScreen
             allow="autoplay; encrypted-media; picture-in-picture"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
           />
-          
-          {/* AdGuard Overlay (State Managed) */}
-          <AnimatePresence>
-            {showAdGuard && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-11 pointer-events-none flex items-center justify-center"
-              >
-                 <div className="bg-black/80 backdrop-blur-md px-8 py-5 rounded-[24px] border border-white/10 text-center space-y-2 pointer-events-auto">
-                    <div className="flex justify-center gap-2 mb-2">
-                       <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                       <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse delay-100" />
-                       <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse delay-200" />
-                    </div>
-                    <h5 className="text-[10px] font-black uppercase tracking-[4px] text-[--flx-cyan]">Cinematic Guard Active</h5>
-                    <p className="text-[11px] text-white/70 max-w-[280px]">Third-party server loading. If a pop-up appears, close it once to resume your cinematic experience.</p>
-                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       ) : mode === 'free' && fullFilmYoutubeId ? (
         <div className="relative w-full h-full bg-black">
           <YouTubePlayer 
+            ref={youtubeRef}
             videoId={fullFilmYoutubeId} 
             title={title} 
             startTime={typeof window !== 'undefined' ? Number(new URLSearchParams(window.location.search).get('t')) || 0 : 0}
@@ -194,6 +234,18 @@ export function VideoPlayer({
             </button>
           </div>
 
+          {/* AI Advisor Button */}
+          <button 
+            onClick={() => setIsAssistantOpen(!isAssistantOpen)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-3 backdrop-blur-xl border border-white/10 rounded-2xl text-[10px] font-bold tracking-widest transition-all",
+              isAssistantOpen ? "bg-[--flx-cyan] text-black" : "bg-black/40 text-white hover:bg-black/60"
+            )}
+          >
+            <Sparkles size={12} className={cn(isAssistantOpen ? "text-black" : "text-[--flx-cyan] animate-pulse")} />
+            AI ADVISOR
+          </button>
+
           {/* Server Switcher */}
           {mode === 'player' && (
             <div className="relative">
@@ -256,6 +308,30 @@ export function VideoPlayer({
       {/* Atmospheric Glowing Orbs */}
       <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-[--flx-purple]/10 blur-[150px] rounded-full pointer-events-none" />
       <div className="absolute -top-32 -right-32 w-96 h-96 bg-[--flx-cyan]/10 blur-[150px] rounded-full pointer-events-none" />
+
+      {/* AI Assistant Sidebar */}
+      <SceneAssistant 
+        isOpen={isAssistantOpen}
+        onClose={() => setIsAssistantOpen(false)}
+        title={title}
+        timestamp={currentTime}
+        plotContext={overview}
+      />
+
+      <SkipPrompt 
+        currentTime={currentTime}
+        segments={skipSegments}
+        onSkip={(to) => {
+          if (mode === 'free' && youtubeRef.current) {
+            youtubeRef.current.seekTo(to);
+            logSkipEvent(tmdbId, 'manual');
+          }
+        }}
+        onAlwaysSkip={async () => {
+          setAutoSkipEnabled(true);
+          await updatePlaybackPreference('auto_skip_intros', true);
+        }}
+      />
     </div>
   );
 }

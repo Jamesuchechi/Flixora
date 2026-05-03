@@ -5,6 +5,7 @@ import { tmdb } from '@/lib/tmdb';
 import { getYear } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { BrowseGrid } from '@/components/browse/BrowseGrid';
+import { MoodFilters } from '@/components/browse/MoodFilters';
 
 export const metadata: Metadata = { title: 'Explore Movies | Flixora' };
 export const revalidate = 3600;
@@ -72,6 +73,8 @@ export default async function MoviesPage() {
 
       {/* ── Browse & Discovery Section ── */}
       <div className="px-6 md:px-10 space-y-16">
+        <MoodFilters />
+        
         <BrowseGrid 
           initialItems={popular.results.slice(1)} 
           genres={genres.genres} 

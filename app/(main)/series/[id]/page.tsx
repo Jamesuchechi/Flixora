@@ -9,12 +9,14 @@ import { TrailerButton } from '@/components/movie/TrailerButton';
 import { WatchlistButton } from '@/components/movie/WatchlistButton';
 import { HeroTrailer } from '@/components/movie/HeroTrailer';
 import { SeasonSelector } from '@/components/tv/SeasonSelector';
+import { TrailerInsights } from '@/components/movie/TrailerInsights';
 import { MovieRow } from '@/components/home/MovieRow';
 import { Badge } from '@/components/ui/Badge';
 import type { TMDBCredits, TMDBVideo, TMDBCastMember, TMDBSeason } from '@/types/tmdb';
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ mode?: string }>;
 }
 
 /**
@@ -34,8 +36,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function SeriesDetailPage({ params }: Props) {
+export default async function SeriesDetailPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { mode } = await searchParams;
   const showId = Number(id);
 
   // Parallel fetch for optimal performance
@@ -175,7 +178,7 @@ export default async function SeriesDetailPage({ params }: Props) {
               {/* Actions */}
               <div className="flex items-center gap-4 flex-wrap pt-4">
                 <Link
-                  href={`/watch/${show.id}?s=1&e=1`}
+                  href={`/watch/${show.id}?s=1&e=1${mode === 'free' ? '&mode=free' : ''}`}
                   className="flex items-center gap-3 bg-[--flx-purple] hover:bg-[--flx-purple-d] text-white font-bold text-sm px-10 py-4 rounded-2xl transition-all hover:-translate-y-1 shadow-xl shadow-[--flx-purple]/20 active:scale-95"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
@@ -212,6 +215,12 @@ export default async function SeriesDetailPage({ params }: Props) {
             {cast.length > 0 && (
               <div className="animate-fade-up" style={{ animationDelay: '0.3s' }}>
                 <CastRow cast={cast} />
+                <TrailerInsights 
+                  tmdbId={show.id} 
+                  title={show.name} 
+                  overview={show.overview || ''} 
+                  genres={(show.genres || []).map(g => g.name)} 
+                />
               </div>
             )}
           </div>

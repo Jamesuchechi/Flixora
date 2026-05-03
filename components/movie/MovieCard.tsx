@@ -31,7 +31,7 @@ export function MovieCard({
   const addToWatchlist  = useStore((s) => s.addToWatchlist);
   const removeFromWatchlist = useStore((s) => s.removeFromWatchlist);
   const saved = isInWatchlist(id);
-  const href  = `/${mediaType === 'tv' ? 'series' : 'movies'}/${id}`;
+  const href  = `/${mediaType === 'tv' ? 'series' : 'movies'}/${id}${isFree ? '?mode=free' : ''}`;
 
   return (
     <div 

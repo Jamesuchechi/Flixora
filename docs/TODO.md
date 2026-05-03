@@ -17,7 +17,7 @@
 | 7     | Search                    | 🔲 Not started |
 | 8     | Polish & Performance      | 🔲 Not started |
 | 9     | Testing & QA              | 🔲 Not started |
-| 10    | Launch                    | 🔲 Not started |
+| 10    | Launch                    | ✅ Completed   |
 
 ---
 
@@ -338,57 +338,77 @@
 
 ---
 
-### 10.1 "What Should I Watch?" — Conversational AI
+### 10.0 "What Should I Watch?" — Conversational AI
 
-- [ ] Design conversational flow: mood → context → constraints → recommendation
-- [ ] Build `WatchAdvisor` component — floating chat bubble on home page
-- [ ] Connect to Groq API via `/api/ai/advisor` route
-- [ ] System prompt engineering: train Groq on Flixora's catalog context
-- [ ] Multi-turn conversation support — remember previous messages in session
-- [ ] Groq returns structured JSON: `{ tmdb_id, title, reason, mood_match, trailer_key }`
-- [ ] Render recommendation as a rich card with poster, reasoning, and direct play button
-- [ ] Add "Not quite" button — Groq refines based on rejection feedback
-- [ ] Session persistence — save advisor conversations to Supabase per user
-- [ ] Build conversation history UI — "Past recommendations" in profile
-- [ ] Rate limiting: 10 AI queries/day on Free plan, unlimited on Pro
-- [ ] Streaming responses — use Groq's streaming API for real-time text output
+- [x] Design conversational flow: mood → context → constraints → recommendation
+- [x] Build `WatchAdvisor` component — floating chat bubble on home page
+- [x] Connect to Groq API via `/api/ai/advisor` route
+- [x] System prompt engineering: train Groq on Flixora's catalog context
+- [x] Multi-turn conversation support — remember previous messages in session
+- [x] Groq returns structured JSON: `{ tmdb_id, title, reason, mood_match, trailer_key }`
+- [x] Render recommendation as a rich card with poster, reasoning, and direct play button
+- [x] Add "Not quite" button — Groq refines based on rejection feedback
+- [x] Session persistence — save advisor conversations to Supabase per user
+- [x] Build conversation history UI — "Past recommendations" in profile
+- [x] Rate limiting: 10 AI queries/day on Free plan, unlimited on Pro
+- [x] Streaming responses — use Groq's streaming API for real-time text output
 
-### 10.2 Scene Q&A — "What Just Happened?"
+## Phase 10 — Intelligence & Stealth Engine
 
-- [ ] Build `SceneAssistant` component — slide-out panel during playback
-- [ ] Triggered by keyboard shortcut (`?`) or button in player controls
-- [ ] Context injection: pass current movie/series + timestamp + episode to Groq
-- [ ] Pre-built question templates: "Who is this character?", "What did I miss?", "Explain this scene"
-- [ ] Free-form question input with send button
-- [ ] Groq answers with: character context, plot recap, thematic meaning
-- [ ] Spoiler mode toggle — "Don't tell me what happens next"
-- [ ] Cache common Q&A pairs per title to reduce API costs
-- [ ] Rate limiting: 5 scene queries/day Free, 50/day Pro
+### 10.1 SmartGuard Ad Shield (Stealth Player)
+- [x] Build `SmartGuard` overlay component for non-YouTube players
+- [x] Implement `Invisible Shield` logic to catch pop-up triggers during playback
+- [x] Implement `Pause-State Reveal` to allow legitimate provider ads for compliance
+- [x] Add `sandbox` attribute optimizations to `VideoPlayer` iframes
+- [x] Implement "Smart Redirect Recovery" — auto-reloads if a malicious redirect breaks the session
 
-### 10.3 Smart Skip Detection
+### 10.2 AI YouTube Matcher (Universal Engine)
+- [x] Build server action to search YouTube for "Full Movie" candidates for any TMDB ID
+- [x] Implement "Confidence Scoring": Length > 60m, Official Channel check, Title match
+- [x] Cache successful matches in `trailer_cache` with a `is_full_movie` flag
+- [x] Auto-fallback: If YouTube match confidence < 80%, use standard provider with SmartGuard
 
-- [ ] Research open-source intro/credits detection (AniSkip API for anime, custom for others)
-- [ ] Integrate AniSkip API for anime series — returns exact timestamps for intros/outros
-- [ ] For non-anime: use YouTube chapter markers (where available) as skip boundaries
-- [ ] Build `SkipPrompt` component — appears at detected skip point ("Skip Intro?")
-- [ ] User can dismiss, skip, or set preference ("Always skip intros for this show")
-- [ ] Store skip preferences in `user_preferences` Supabase table
-- [ ] Build skip learning system — if 80%+ of users skip a segment, auto-suggest for all
+### 10.3 Scene Q&A — "What Just Happened?"
+- [x] Build `SceneAssistant` component — slide-out panel during playback
+- [x] Triggered by keyboard shortcut (`?`) or button in player controls
+- [x] Context injection: pass current movie/series + timestamp + episode to Groq
+- [x] Pre-built question templates: "Who is this character?", "What did I miss?", "Explain this scene"
+- [x] Free-form question input with send button
+- [x] Groq answers with: character context, plot recap, thematic meaning
+- [x] Spoiler mode toggle — "Don't tell me what happens next"
+- [x] Cache common Q&A pairs per title to reduce API costs
 
-### 10.4 AI-Generated Descriptions & Mood Tags
+### 10.4 AI Advisor & Content Enrichment
+- [x] Set up `lib/ai/groq.ts` client with rate-limiting and retry logic
+- [x] Content Advisor: "Why should I watch this?" (Personalized pitch based on user history)
+- [x] Generate mood tags automatically: "melancholic", "feel-good", "mind-bending"
+- [x] "Vibe search" — type a feeling, AI maps it to a genre+mood combination
+- [x] Store AI-generated metadata in `ai_metadata` Supabase table
 
-- [ ] For titles with short/missing TMDB descriptions, use Groq to generate enriched synopsis
-- [ ] Generate mood tags automatically: "melancholic", "edge-of-your-seat", "feel-good", "mind-bending"
-- [ ] Store AI-generated metadata in `ai_metadata` Supabase table — never overwrite TMDB data
-- [ ] Build mood tag filter on browse pages (alongside genre)
-- [ ] "Vibe search" — type a feeling, AI maps it to a genre+mood combination and queries TMDB
+### 10.5 Smart Skip Detection
 
-### 10.5 AI Trailer Analysis
+- [x] Research open-source intro/credits detection (AniSkip API for anime, custom for others)
+- [x] Integrate AniSkip API for anime series — returns exact timestamps for intros/outros
+- [x] For non-anime: use YouTube chapter markers (where available) as skip boundaries
+- [x] Build `SkipPrompt` component — appears at detected skip point ("Skip Intro?")
+- [x] User can dismiss, skip, or set preference ("Always skip intros for this show")
+- [x] Store skip preferences in `user_preferences` Supabase table
+- [x] Build skip learning system — if 80%+ of users skip a segment, auto-suggest for all
 
-- [ ] On trailer watch: Groq analyzes title, genre, cast from TMDB and generates 3-line "what to expect"
-- [ ] Show alongside trailer: "If you liked X, you'll love this because..."
-- [ ] Tone indicator: Action level, emotional depth, pace (fast/slow), darkness (light/dark)
-- [ ] Pre-generate for top 1000 titles and cache — don't run live
+### 10.6 AI-Generated Descriptions & Mood Tags
+
+- [x] For titles with short/missing TMDB descriptions, use Groq to generate enriched synopsis
+- [x] Generate mood tags automatically: "melancholic", "edge-of-your-seat", "feel-good", "mind-bending"
+- [x] Store AI-generated metadata in `ai_metadata` Supabase table — never overwrite TMDB data
+- [x] Build mood tag filter on browse pages (alongside genre)
+- [x] "Vibe search" — type a feeling, AI maps it to a genre+mood combination and queries TMDB
+
+### 10.7 AI Trailer Analysis
+
+- [x] On trailer watch: Groq analyzes title, genre, cast from TMDB and generates 3-line "what to expect"
+- [x] Show alongside trailer: "If you liked X, you'll love this because..."
+- [x] Tone indicator: Action level, emotional depth, pace (fast/slow), darkness (light/dark)
+- [x] Pre-generate for top 1000 titles and cache — don't run live
 
 ---
 

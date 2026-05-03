@@ -1,7 +1,7 @@
 'use client';
 
 import YouTube, { YouTubeProps } from 'react-youtube';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw, RotateCw, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,13 +23,17 @@ interface YouTubePlayerInstance {
   getDuration: () => number;
 }
 
-export function YouTubePlayer({ 
+export interface YouTubePlayerRef {
+  seekTo: (seconds: number) => void;
+}
+
+export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({ 
   videoId, 
   title, 
   startTime = 0,
   onProgress, 
   onEnd 
-}: YouTubePlayerProps) {
+}, ref) => {
   const [player, setPlayer] = useState<YouTubePlayerInstance | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -38,6 +42,12 @@ export function YouTubePlayer({
   const [error, setError] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    seekTo: (seconds: number) => {
+      player?.seekTo(seconds, true);
+    }
+  }), [player]);
 
   const opts: YouTubeProps['opts'] = {
     height: '100%',
@@ -243,4 +253,6 @@ export function YouTubePlayer({
       </div>
     </div>
   );
-}
+});
+
+YouTubePlayer.displayName = 'YouTubePlayer';

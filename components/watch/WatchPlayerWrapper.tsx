@@ -17,6 +17,7 @@ interface WatchPlayerWrapperProps {
   youtubeId?: string;
   fullFilmYoutubeId?: string;
   nextEpisodeUrl?: string;
+  overview?: string;
 }
 
 export function WatchPlayerWrapper(props: WatchPlayerWrapperProps) {

@@ -11,10 +11,12 @@ import { MovieRow } from '@/components/home/MovieRow';
 import { Badge } from '@/components/ui/Badge';
 import { getWatchProgress } from '@/lib/supabase/actions/progress';
 import { HeroTrailer } from '@/components/movie/HeroTrailer';
+import { TrailerInsights } from '@/components/movie/TrailerInsights';
 import type { TMDBCredits, TMDBVideo, TMDBCastMember, TMDBCrewMember } from '@/types/tmdb';
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ mode?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -33,8 +35,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function MovieDetailPage({ params }: Props) {
+export default async function MovieDetailPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { mode } = await searchParams;
   const movieId = Number(id);
 
   // Parallel fetch for movie data, credits, videos, and watch progress
@@ -130,7 +133,7 @@ export default async function MovieDetailPage({ params }: Props) {
               <p className="text-[15px] leading-relaxed text-[--flx-text-1]/70 font-light max-w-2xl">{movie.overview}</p>
 
               <div className="flex items-center gap-4 flex-wrap pt-4">
-                <Link href={`/watch/${movie.id}`} className="flex items-center gap-3 bg-[--flx-purple] hover:bg-[--flx-purple-d] text-white font-bold text-sm px-10 py-4 rounded-2xl transition-all hover:-translate-y-1 shadow-xl shadow-[--flx-purple]/20 active:scale-95">
+                <Link href={`/watch/${movie.id}${mode === 'free' ? '?mode=free' : ''}`} className="flex items-center gap-3 bg-[--flx-purple] hover:bg-[--flx-purple-d] text-white font-bold text-sm px-10 py-4 rounded-2xl transition-all hover:-translate-y-1 shadow-xl shadow-[--flx-purple]/20 active:scale-95">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
                   {progress && progress.progress > 0 ? `Resume at ${progress.progress}%` : 'Play Now'}
                 </Link>
@@ -146,6 +149,12 @@ export default async function MovieDetailPage({ params }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           <div className="lg:col-span-8 space-y-16">
             {cast.length > 0 && <CastRow cast={cast} />}
+            <TrailerInsights 
+              tmdbId={movie.id} 
+              title={movie.title} 
+              overview={movie.overview || ''} 
+              genres={(movie.genres || []).map(g => g.name)} 
+            />
             {director && (
               <div className="space-y-6 animate-fade-up">
                 <h2 className="font-bebas text-2xl tracking-[3px] text-[--flx-text-1] uppercase">Director</h2>

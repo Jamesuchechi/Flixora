@@ -3,6 +3,8 @@ import type { TMDBVideo } from '@/types/tmdb';
 import type { Metadata } from 'next';
 import { tmdb } from '@/lib/tmdb';
 import { isFreeFilm } from '@/lib/supabase/actions/free-films';
+import { findFullMovieOnYouTube } from '@/lib/supabase/actions/matcher';
+import { getYear } from '@/lib/utils';
 import { WatchlistButton } from '@/components/movie/WatchlistButton';
 import { MovieRow } from '@/components/home/MovieRow';
 import { ExternalRatings } from '@/components/movie/ExternalRatings';
@@ -42,9 +44,17 @@ export default async function WatchPage({ params, searchParams }: Props) {
   ]);
 
   const isMovie = !!movie && !show?.name;
+  const title   = movie?.title ?? show?.name ?? 'Unknown Title';
   
   // Refetch free film ID with correct media type if needed
-  const actualFreeFilmId = await isFreeFilm(mediaId, isMovie ? 'movie' : 'tv');
+  let actualFreeFilmId = await isFreeFilm(mediaId, isMovie ? 'movie' : 'tv');
+
+  // AI Matcher: If not curated but is a movie, try to find it on YouTube
+  if (!actualFreeFilmId && isMovie) {
+    const year = getYear(movie?.release_date);
+    const matchedId = await findFullMovieOnYouTube(mediaId, title, year);
+    if (matchedId) actualFreeFilmId = matchedId;
+  }
 
   // Identify the best trailer key
   const trailerResults = videos.results as TMDBVideo[];
@@ -55,8 +65,6 @@ export default async function WatchPage({ params, searchParams }: Props) {
     const tvExt = await tmdb.tv.externalIds(mediaId, { silent: true }).catch(() => null);
     imdbId = tvExt?.imdb_id;
   }
-
-  const title   = movie?.title ?? show?.name ?? 'Unknown Title';
   const backdrop = tmdb.image(movie?.backdrop_path ?? show?.backdrop_path, 'original');
   const rating  = movie?.vote_average ?? show?.vote_average ?? 0;
   const backHref = isMovie ? `/movies/${mediaId}` : `/series/${mediaId}`;
@@ -80,6 +88,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
             youtubeId={trailer?.key}
             fullFilmYoutubeId={actualFreeFilmId || undefined}
             nextEpisodeUrl={nextEpisodeUrl}
+            overview={movie?.overview ?? show?.overview}
           />
         </div>
       </section>
