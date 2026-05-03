@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect } from 'react';
 import Link from 'next/link';
-import { signIn, signUp, signInWithGoogle, type AuthState } from '@/lib/actions/auth';
+import { signIn, signUp, type AuthState } from '@/lib/actions/auth';
 import { cn } from '@/lib/utils';
 import { Mail, Lock, User } from 'lucide-react';
 
@@ -24,10 +24,19 @@ export function AuthForm({ mode, redirectError }: AuthFormProps) {
   }, [state, mode]);
 
   const handleGoogle = async () => {
-    try {
-      await signInWithGoogle();
-    } catch (err) {
-      console.error('Google Sign-in failed:', err);
+    const { createClient } = await import('@/lib/supabase/client');
+    const supabase = createClient();
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { access_type: 'offline', prompt: 'consent' },
+      },
+    });
+
+    if (error) {
+      console.error('Google Sign-in failed:', error.message);
     }
   };
 
