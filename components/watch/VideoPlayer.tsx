@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Play, SkipForward, Tv, Server, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { YouTubePlayer, YouTubePlayerRef } from './YouTubePlayer';
@@ -13,6 +13,8 @@ import { Sparkles } from 'lucide-react';
 import { getSkipSegments, SkipSegment } from '@/lib/ai/skip-detection';
 import { SkipPrompt } from './SkipPrompt';
 import { updatePlaybackPreference, getUserPreferences, logSkipEvent } from '@/lib/supabase/actions/preferences';
+import { findFullMovieOnYouTube } from '@/lib/supabase/actions/matcher';
+import { Loader2, Search } from 'lucide-react';
 
 interface VideoPlayerProps {
   tmdbId: number;
@@ -44,8 +46,12 @@ export function VideoPlayer({
   overview = ""
 }: VideoPlayerProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const initialMode = searchParams.get('mode') as 'player' | 'trailer' | 'free' | null;
+
   const [mode, setMode] = useState<'player' | 'trailer' | 'free'>(
-    fullFilmYoutubeId ? 'free' : 'player'
+    initialMode || (fullFilmYoutubeId ? 'free' : 'player')
   );
   const [activeServer, setActiveServer] = useState(SERVERS[0]);
   const [showServerList, setShowServerList] = useState(false);
@@ -55,6 +61,8 @@ export function VideoPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [skipSegments, setSkipSegments] = useState<SkipSegment[]>([]);
   const [autoSkipEnabled, setAutoSkipEnabled] = useState(false);
+  const [isSearchingAI, setIsSearchingAI] = useState(false);
+  const [dynamicFreeId, setDynamicFreeId] = useState<string | null>(null);
   const youtubeRef = useRef<YouTubePlayerRef>(null);
 
   useEffect(() => {
@@ -94,6 +102,9 @@ export function VideoPlayer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Sync URL changes to local state without triggering cascading renders
+  const currentMode = initialMode || mode;
+
   const handleRefresh = () => {
     setPlayerKey(prev => prev + 1);
     setShowAdGuard(true);
@@ -119,6 +130,9 @@ export function VideoPlayer({
 
   const handleModeChange = (newMode: 'player' | 'trailer' | 'free') => {
     setMode(newMode);
+    const params = new URLSearchParams(searchParams);
+    params.set('mode', newMode);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     if (newMode === 'player') {
       setShowAdGuard(true);
       setTimeout(() => setShowAdGuard(false), 4000);
@@ -130,6 +144,24 @@ export function VideoPlayer({
     setShowServerList(false);
     setShowAdGuard(true);
     setTimeout(() => setShowAdGuard(false), 4000);
+  };
+  
+  const handleAISearch = async () => {
+    setIsSearchingAI(true);
+    try {
+      const year = ""; // We could pass this as a prop, but matcher handles it
+      const matchedId = await findFullMovieOnYouTube(tmdbId, title, year, mediaType);
+      if (matchedId) {
+        setDynamicFreeId(matchedId);
+        setMode('free');
+      } else {
+        alert("AI Matcher couldn't find a verified full version on YouTube. Try another server.");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSearchingAI(false);
+    }
   };
 
   // Generate the professional embed URL using TMDB ID and selected Server
@@ -147,7 +179,7 @@ export function VideoPlayer({
     <div className="relative w-full aspect-video rounded-[32px] overflow-hidden bg-[#090514] shadow-2xl border border-white/5 group">
       
       {/* Player Modes */}
-      {mode === 'player' ? (
+      {currentMode === 'player' ? (
         <div className="w-full h-full relative">
           <SmartGuard 
             isPlaying={!showAdGuard} 
@@ -163,17 +195,17 @@ export function VideoPlayer({
             sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
           />
         </div>
-      ) : mode === 'free' && fullFilmYoutubeId ? (
+      ) : currentMode === 'free' && (fullFilmYoutubeId || dynamicFreeId) ? (
         <div className="relative w-full h-full bg-black">
           <YouTubePlayer 
             ref={youtubeRef}
-            videoId={fullFilmYoutubeId} 
+            videoId={(dynamicFreeId || fullFilmYoutubeId) as string} 
             title={title} 
             startTime={typeof window !== 'undefined' ? Number(new URLSearchParams(window.location.search).get('t')) || 0 : 0}
             onProgress={(s, d) => handleProgress(s, d)}
           />
           <div className="absolute bottom-6 left-6 z-20">
-            <ReportButton videoId={fullFilmYoutubeId} title={title} />
+            <ReportButton videoId={(dynamicFreeId || fullFilmYoutubeId) as string} title={title} />
           </div>
         </div>
       ) : (
@@ -181,9 +213,9 @@ export function VideoPlayer({
         <div className="relative w-full h-full bg-black">
           {youtubeId ? (
             <YouTubePlayer 
-              videoId={youtubeId} 
+              videoId={youtubeId as string} 
               title={title} 
-              onEnd={() => setMode('player')} 
+              onEnd={() => handleModeChange('player')} 
             />
           ) : (
              <div className="absolute inset-0 flex items-center justify-center">
@@ -198,12 +230,12 @@ export function VideoPlayer({
         <div className="flex gap-2 pointer-events-auto">
           {/* Main Toggle */}
           <div className="flex p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl">
-            {fullFilmYoutubeId && (
+            {(fullFilmYoutubeId || dynamicFreeId) && (
               <button 
                 onClick={() => handleModeChange('free')}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
-                  mode === 'free' ? "bg-[--flx-cyan] text-black shadow-lg" : "text-white/60 hover:text-white"
+                  mode === 'free' || currentMode === 'free' ? "bg-[--flx-cyan] text-black shadow-lg" : "text-white/60 hover:text-white"
                 )}
               >
                 <div className="w-2 h-2 rounded-full bg-black animate-pulse" />
@@ -212,27 +244,41 @@ export function VideoPlayer({
             )}
             <button 
               onClick={() => handleModeChange('player')}
-              aria-label="Switch to movie stream"
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
-                mode === 'player' ? "bg-white text-black shadow-lg" : "text-white/60 hover:text-white"
+                currentMode === 'player' ? "bg-white text-black shadow-lg" : "text-white/60 hover:text-white"
               )}
             >
-              <Play size={12} fill={mode === 'player' ? "black" : "none"} />
+              <Play size={12} fill={currentMode === 'player' ? "black" : "none"} />
               STREAM
             </button>
             <button 
               onClick={() => handleModeChange('trailer')}
-              aria-label="Switch to trailer"
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
-                mode === 'trailer' ? "bg-[--flx-purple] text-white shadow-lg" : "text-white/60 hover:text-white"
+                currentMode === 'trailer' ? "bg-[--flx-purple] text-white shadow-lg" : "text-white/60 hover:text-white"
               )}
             >
               <Tv size={12} />
               TRAILER
             </button>
           </div>
+
+          {/* AI Search / Recovery */}
+          {mode === 'player' && !fullFilmYoutubeId && !dynamicFreeId && (
+            <button 
+              onClick={handleAISearch}
+              disabled={isSearchingAI}
+              className="flex items-center gap-2 px-4 py-3 bg-[--flx-purple]/10 hover:bg-[--flx-purple]/20 border border-[--flx-purple]/20 rounded-2xl text-[10px] font-bold text-[--flx-purple] tracking-widest transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isSearchingAI ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Search size={12} />
+              )}
+              {isSearchingAI ? "FINDING FULL VERSION..." : "FIND ON YOUTUBE (AI)"}
+            </button>
+          )}
 
           {/* AI Advisor Button */}
           <button 
