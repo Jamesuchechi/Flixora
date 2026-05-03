@@ -16,7 +16,9 @@ const NAV_LINKS = [
   { href: '/home',     label: 'Home' },
   { href: '/movies',   label: 'Movies' },
   { href: '/series',   label: 'Series' },
+  { href: '/free',     label: 'Watch Free' },
   { href: '/trending', label: 'Trending' },
+  { href: '/search',   label: 'Search' },
   { href: '/my-list',  label: 'My List' },
 ];
 

@@ -91,9 +91,12 @@ function ratingColor(rating: number): string {
 // ─── Endpoints ────────────────────────────────────────────────────────────────
 
 const trending = {
-  all:    (page = '1', options?: { silent?: boolean }) => get<TMDBPaginatedResponse<TMDBMovie & TMDBTVShow>>('/trending/all/day', { page }, options),
-  movies: (page = '1', options?: { silent?: boolean }) => get<TMDBPaginatedResponse<TMDBMovie>>('/trending/movie/day', { page }, options),
-  tv:     (page = '1', options?: { silent?: boolean }) => get<TMDBPaginatedResponse<TMDBTVShow>>('/trending/tv/day', { page }, options),
+  all:    (timeWindow: 'day' | 'week' = 'day', page = '1', options?: { silent?: boolean }) => 
+    get<TMDBPaginatedResponse<TMDBMovie & TMDBTVShow>>(`/trending/all/${timeWindow}`, { page }, options),
+  movies: (timeWindow: 'day' | 'week' = 'day', page = '1', options?: { silent?: boolean }) => 
+    get<TMDBPaginatedResponse<TMDBMovie>>(`/trending/movie/${timeWindow}`, { page }, options),
+  tv:     (timeWindow: 'day' | 'week' = 'day', page = '1', options?: { silent?: boolean }) => 
+    get<TMDBPaginatedResponse<TMDBTVShow>>(`/trending/tv/${timeWindow}`, { page }, options),
 };
 
 const movies = {

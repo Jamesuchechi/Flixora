@@ -2,20 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, List, User, Search } from 'lucide-react';
+import { Home, Compass, List, User, PlayCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useStore } from '@/store/useStore';
+
 
 const NAV_ITEMS = [
-  { icon: Home,    label: 'Home',     href: '/home' },
-  { icon: Compass, label: 'Explore',  href: '/search' },
-  { icon: List,    label: 'My List',  href: '/my-list' },
-  { icon: User,    label: 'Profile',  href: '/profile' },
+  { icon: Home,       label: 'Home',     href: '/home' },
+  { icon: Compass,    label: 'Search',   href: '/search' },
+  { icon: PlayCircle, label: 'Free',     href: '/free' },
+  { icon: List,       label: 'My List',  href: '/my-list' },
+  { icon: User,       label: 'Profile',  href: '/profile' },
 ];
 
 export function MobileNav() {
   const pathname = usePathname();
-  const setSearchOpen = useStore((s) => s.setSearchOpen);
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[--flx-bg]/90 backdrop-blur-2xl border-t border-white/5 px-6 pt-3 pb-6 flex justify-between items-center">
@@ -38,15 +38,6 @@ export function MobileNav() {
           </Link>
         );
       })}
-      
-      {/* Mobile Search Trigger */}
-      <button
-        onClick={() => setSearchOpen(true)}
-        className="flex flex-col items-center gap-1.5 text-[--flx-text-3] hover:text-[--flx-text-2] transition-all cursor-pointer"
-      >
-        <Search size={22} />
-        <span className="text-[10px] font-bold uppercase tracking-wider">Search</span>
-      </button>
     </nav>
   );
 }
