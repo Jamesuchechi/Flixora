@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Play, SkipForward, Tv, Server, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { YouTubePlayer } from './YouTubePlayer';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface VideoPlayerProps {
   tmdbId: number;
@@ -39,6 +40,29 @@ export function VideoPlayer({
   );
   const [activeServer, setActiveServer] = useState(SERVERS[0]);
   const [showServerList, setShowServerList] = useState(false);
+  const [showAdGuard, setShowAdGuard] = useState(mode === 'player');
+
+  useEffect(() => {
+    if (showAdGuard) {
+      const timer = setTimeout(() => setShowAdGuard(false), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [showAdGuard]);
+
+  const handleModeChange = (newMode: 'player' | 'trailer' | 'free') => {
+    setMode(newMode);
+    if (newMode === 'player') {
+      setShowAdGuard(true);
+      setTimeout(() => setShowAdGuard(false), 4000);
+    }
+  };
+
+  const handleServerChange = (server: typeof SERVERS[0]) => {
+    setActiveServer(server);
+    setShowServerList(false);
+    setShowAdGuard(true);
+    setTimeout(() => setShowAdGuard(false), 4000);
+  };
 
   // Generate the professional embed URL using TMDB ID and selected Server
   const getStreamUrl = () => {
@@ -66,18 +90,27 @@ export function VideoPlayer({
             allow="autoplay; encrypted-media; picture-in-picture"
           />
           
-          {/* AdGuard Overlay (Temporary) */}
-          <div className="absolute inset-0 z-11 pointer-events-none flex items-center justify-center animate-out fade-out fill-mode-forwards duration-1000 delay-3000">
-             <div className="bg-black/80 backdrop-blur-md px-8 py-5 rounded-[24px] border border-white/10 text-center space-y-2 pointer-events-auto">
-                <div className="flex justify-center gap-2 mb-2">
-                   <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                   <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse delay-100" />
-                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse delay-200" />
-                </div>
-                <h5 className="text-[10px] font-black uppercase tracking-[4px] text-[--flx-cyan]">Cinematic Guard Active</h5>
-                <p className="text-[11px] text-white/70 max-w-[280px]">Third-party server loading. If a pop-up appears, close it once to resume your cinematic experience.</p>
-             </div>
-          </div>
+          {/* AdGuard Overlay (State Managed) */}
+          <AnimatePresence>
+            {showAdGuard && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-11 pointer-events-none flex items-center justify-center"
+              >
+                 <div className="bg-black/80 backdrop-blur-md px-8 py-5 rounded-[24px] border border-white/10 text-center space-y-2 pointer-events-auto">
+                    <div className="flex justify-center gap-2 mb-2">
+                       <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                       <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse delay-100" />
+                       <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse delay-200" />
+                    </div>
+                    <h5 className="text-[10px] font-black uppercase tracking-[4px] text-[--flx-cyan]">Cinematic Guard Active</h5>
+                    <p className="text-[11px] text-white/70 max-w-[280px]">Third-party server loading. If a pop-up appears, close it once to resume your cinematic experience.</p>
+                 </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       ) : mode === 'free' && fullFilmYoutubeId ? (
         <div className="relative w-full h-full bg-black">
@@ -110,7 +143,7 @@ export function VideoPlayer({
           <div className="flex p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl">
             {fullFilmYoutubeId && (
               <button 
-                onClick={() => setMode('free')}
+                onClick={() => handleModeChange('free')}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
                   mode === 'free' ? "bg-[--flx-cyan] text-black shadow-lg" : "text-white/60 hover:text-white"
@@ -121,7 +154,7 @@ export function VideoPlayer({
               </button>
             )}
             <button 
-              onClick={() => setMode('player')}
+              onClick={() => handleModeChange('player')}
               aria-label="Switch to movie stream"
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
@@ -132,7 +165,7 @@ export function VideoPlayer({
               STREAM
             </button>
             <button 
-              onClick={() => setMode('trailer')}
+              onClick={() => handleModeChange('trailer')}
               aria-label="Switch to trailer"
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
@@ -163,10 +196,7 @@ export function VideoPlayer({
                   {SERVERS.map((server) => (
                     <button
                       key={server.id}
-                      onClick={() => {
-                        setActiveServer(server);
-                        setShowServerList(false);
-                      }}
+                      onClick={() => handleServerChange(server)}
                       className={cn(
                         "w-full flex items-center justify-between px-4 py-3 text-[10px] font-bold tracking-widest transition-colors border-b border-white/5 last:border-none",
                         activeServer.id === server.id ? "text-[--flx-cyan] bg-white/5" : "text-white/60 hover:text-white hover:bg-white/5"

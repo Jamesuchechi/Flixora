@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect, useActionState } from 'react';
-import Image from 'next/image';
+import { useState, useEffect, useActionState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Shield, Eye, Save, Camera, Image as ImageIcon, ChevronRight, Check } from 'lucide-react';
+import { User, Shield, Eye, Save, Camera, Image as ImageIcon, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { getUserProfile, updateProfile } from '@/lib/supabase/actions/auth';
+import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
+import Image from 'next/image';
 
 export default function SettingsPage() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -16,6 +17,14 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'profile' | 'account' | 'preferences'>('profile');
   
+  // Local states for previews
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [coverUrl, setCoverUrl] = useState('');
+  const [uploading, setUploading] = useState<'avatar' | 'cover' | null>(null);
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
   const [state, formAction, isPending] = useActionState(updateProfile, {});
 
   useEffect(() => {
@@ -24,11 +33,43 @@ export default function SettingsPage() {
       if (data) {
         setUser(data.user);
         setProfile(data.profile);
+        setAvatarUrl(data.profile?.avatar_url || '');
+        setCoverUrl(data.profile?.cover_url || '');
       }
       setLoading(false);
     }
     loadData();
   }, []);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(type);
+    const supabase = createClient();
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+    const bucket = type === 'avatar' ? 'avatars' : 'covers';
+
+    try {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, file, { upsert: true });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
+      
+      if (type === 'avatar') setAvatarUrl(publicUrl);
+      else setCoverUrl(publicUrl);
+      
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Upload failed. Make sure you ran the SQL script for storage buckets.');
+    } finally {
+      setUploading(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -96,55 +137,79 @@ export default function SettingsPage() {
                    <h3 className="text-sm font-bold text-[--flx-text-3] uppercase tracking-[4px]">Visual Identity</h3>
                    
                    <div className="space-y-8">
-                      {/* Avatar Upload Placeholder */}
+                      {/* Avatar Upload */}
                       <div className="flex items-center gap-6 p-6 rounded-3xl bg-white/3 border border-white/5">
                          <div className="relative group shrink-0">
-                            <div className="w-24 h-24 rounded-[28px] bg-linear-to-br from-[--flx-purple] to-[--flx-cyan] p-0.5 shadow-xl">
-                               <div className="w-full h-full rounded-[27px] bg-[--flx-bg] flex items-center justify-center text-3xl font-bebas text-white">
-                                  {profile?.avatar_url ? (
-                                    <Image 
-                                      src={profile.avatar_url} 
-                                      alt="Avatar" 
-                                      fill 
-                                      className="object-cover rounded-[27px]" 
-                                      unoptimized
-                                    />
+                            <input 
+                              type="file" 
+                              ref={avatarInputRef} 
+                              className="hidden" 
+                              accept="image/*" 
+                              onChange={(e) => handleFileUpload(e, 'avatar')}
+                            />
+                            <div className="w-24 h-24 rounded-[28px] bg-linear-to-br from-[--flx-purple] to-[--flx-cyan] p-0.5 shadow-xl relative overflow-hidden">
+                               <div className="w-full h-full rounded-[27px] bg-[--flx-bg] flex items-center justify-center text-3xl font-bebas text-white overflow-hidden relative">
+                                  {avatarUrl ? (
+                                    <Image src={avatarUrl} alt="Avatar" fill className="object-cover" unoptimized />
                                   ) : (
                                     profile?.username?.slice(0, 2).toUpperCase() || '??'
                                   )}
+                                  
+                                  {uploading === 'avatar' && (
+                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+                                       <Loader2 className="animate-spin text-[--flx-cyan]" size={24} />
+                                    </div>
+                                  )}
                                </div>
                             </div>
-                            <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[--flx-surface-1] border border-white/10 flex items-center justify-center text-[--flx-cyan] hover:scale-110 transition-transform cursor-pointer">
+                            <button 
+                              type="button"
+                              onClick={() => avatarInputRef.current?.click()}
+                              className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[--flx-surface-1] border border-white/10 flex items-center justify-center text-[--flx-cyan] hover:scale-110 transition-transform cursor-pointer"
+                            >
                                <Camera size={14} />
                             </button>
                          </div>
                          <div className="space-y-1">
                             <p className="text-sm font-bold text-[--flx-text-1]">Profile Picture</p>
                             <p className="text-[11px] text-[--flx-text-3] leading-relaxed">PNG or JPG. Max 2MB. Recommended 400x400.</p>
-                            <input type="hidden" name="avatar_url" value={profile?.avatar_url || ''} />
+                            <input type="hidden" name="avatar_url" value={avatarUrl} />
                          </div>
                       </div>
 
-                      {/* Cover Photo Placeholder */}
-                      <div className="relative group h-40 rounded-3xl bg-linear-to-br from-white/5 to-transparent border border-white/5 overflow-hidden flex items-center justify-center">
-                         {profile?.cover_url ? (
-                            <Image 
-                              src={profile.cover_url} 
-                              alt="Cover" 
-                              fill 
-                              className="absolute inset-0 w-full h-full object-cover opacity-40" 
-                              unoptimized
-                            />
+                      {/* Cover Photo Upload */}
+                      <div className="relative group h-44 rounded-3xl bg-linear-to-br from-white/5 to-transparent border border-white/5 overflow-hidden flex items-center justify-center">
+                         <input 
+                            type="file" 
+                            ref={coverInputRef} 
+                            className="hidden" 
+                            accept="image/*" 
+                            onChange={(e) => handleFileUpload(e, 'cover')}
+                         />
+                         
+                         {coverUrl ? (
+                            <Image src={coverUrl} alt="Cover" fill className="object-cover opacity-60" unoptimized />
                          ) : (
                             <div className="flex flex-col items-center gap-2 text-[--flx-text-3]">
                                <ImageIcon size={24} />
                                <span className="text-[10px] font-bold uppercase tracking-widest">Update Cover Photo</span>
                             </div>
                          )}
-                         <button className="absolute bottom-4 right-4 px-4 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-[9px] font-bold text-white uppercase tracking-widest hover:bg-white/10 transition-all cursor-pointer">
-                            Upload Cover
+
+                         {uploading === 'cover' && (
+                            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-10">
+                               <Loader2 className="animate-spin text-[--flx-cyan]" size={32} />
+                            </div>
+                         )}
+
+                         <button 
+                            type="button"
+                            onClick={() => coverInputRef.current?.click()}
+                            className="absolute bottom-4 right-4 px-5 py-2.5 rounded-xl bg-black/60 backdrop-blur-xl border border-white/10 text-[9px] font-bold text-white uppercase tracking-widest hover:bg-white/10 transition-all cursor-pointer z-20"
+                         >
+                            {coverUrl ? 'Change Cover' : 'Upload Cover'}
                          </button>
-                         <input type="hidden" name="cover_url" value={profile?.cover_url || ''} />
+                         <input type="hidden" name="cover_url" value={coverUrl} />
                       </div>
                    </div>
                 </div>
@@ -179,16 +244,18 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Feedback */}
-                {state.error && <p className="text-xs text-red-400 font-bold text-center">{state.error}</p>}
-                {state.success && (
-                  <div className="flex items-center justify-center gap-2 text-green-400">
-                    <Check size={14} />
-                    <span className="text-xs font-bold uppercase tracking-widest">Changes saved successfully</span>
-                  </div>
-                )}
+                <div className="min-h-[24px]">
+                  {state.error && <p className="text-xs text-red-400 font-bold text-center">{state.error}</p>}
+                  {state.success && (
+                    <div className="flex items-center justify-center gap-2 text-green-400">
+                      <Check size={14} />
+                      <span className="text-xs font-bold uppercase tracking-widest">Changes saved successfully</span>
+                    </div>
+                  )}
+                </div>
 
-                {/* Footer Actions */}
-                <div className="pt-4 flex items-center justify-end gap-4">
+                {/* Footer Actions - ALWAYS VISIBLE */}
+                <div className="sticky bottom-0 pt-6 pb-2 bg-[--flx-bg] border-t border-white/5 flex items-center justify-end gap-6 z-30">
                    <button 
                     type="button" 
                     onClick={() => window.location.reload()}
@@ -197,11 +264,11 @@ export default function SettingsPage() {
                      Discard
                    </button>
                    <button 
-                    disabled={isPending}
+                    disabled={isPending || uploading !== null}
                     type="submit"
-                    className="flex items-center gap-2.5 px-8 py-4 bg-[--flx-cyan] text-black font-bold text-[11px] uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[--flx-cyan]/10 disabled:opacity-50 disabled:scale-100 cursor-pointer"
+                    className="flex items-center gap-2.5 px-10 py-4 bg-[--flx-cyan] text-black font-bold text-[11px] uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[--flx-cyan]/20 disabled:opacity-50 disabled:scale-100 cursor-pointer"
                    >
-                     {isPending ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> : <Save size={16} />}
+                     {isPending ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                      Save Changes
                    </button>
                 </div>
