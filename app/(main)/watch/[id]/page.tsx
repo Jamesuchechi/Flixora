@@ -100,6 +100,8 @@ export default async function WatchPage({ params, searchParams }: Props) {
             nextEpisodeUrl={nextEpisodeUrl}
             overview={movie?.overview ?? show?.overview}
             imdbId={imdbId}
+            releaseDate={movie?.release_date ?? show?.first_air_date}
+            status={movie?.status ?? show?.status}
           />
         </div>
       </section>

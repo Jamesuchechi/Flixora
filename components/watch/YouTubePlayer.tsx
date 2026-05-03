@@ -174,8 +174,8 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
         onStateChange={onStateChange}
         onError={onError}
         onEnd={onEnd}
-        className="w-full h-full pointer-events-none" // Disable clicks on iframe
-        iframeClassName="w-full h-full pointer-events-none"
+        className="w-full h-full"
+        iframeClassName="w-full h-full"
       />
 
       {/* Flixora Premium UI Overlay */}

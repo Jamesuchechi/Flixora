@@ -19,6 +19,8 @@ interface WatchPlayerWrapperProps {
   nextEpisodeUrl?: string;
   overview?: string;
   imdbId?: string;
+  releaseDate?: string;
+  status?: string;
 }
 
 export function WatchPlayerWrapper(props: WatchPlayerWrapperProps) {

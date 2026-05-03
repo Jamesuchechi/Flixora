@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Play, SkipForward, Tv, Server, ChevronDown } from 'lucide-react';
+import { Play, SkipForward, Tv, Server, ChevronDown, Calendar, AlertCircle, PlayCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { YouTubePlayer, YouTubePlayerRef } from './YouTubePlayer';
 import { updateWatchProgress } from '@/lib/supabase/actions/progress';
@@ -28,6 +28,8 @@ interface VideoPlayerProps {
   nextEpisodeUrl?: string;
   overview?: string;
   imdbId?: string;
+  releaseDate?: string;
+  status?: string;
 }
 const SERVERS = [
   { id: 'vidsrc_to', name: 'Server 1 (Clean)', url: 'https://vidsrc.to/embed/' },
@@ -46,7 +48,9 @@ export function VideoPlayer({
   fullFilmYoutubeId,
   nextEpisodeUrl,
   overview = "",
-  imdbId
+  imdbId,
+  releaseDate,
+  status
 }: VideoPlayerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,7 +70,11 @@ export function VideoPlayer({
   const [autoSkipEnabled, setAutoSkipEnabled] = useState(false);
   const [isSearchingAI, setIsSearchingAI] = useState(false);
   const [dynamicFreeId, setDynamicFreeId] = useState<string | null>(null);
+  const [forceStream, setForceStream] = useState(false);
   const youtubeRef = useRef<YouTubePlayerRef>(null);
+
+  const isUnreleased = releaseDate ? new Date(releaseDate) > new Date() : false;
+  const isActuallyReleased = status === 'Released' || status === 'Returning Series' || status === 'Ended';
 
   useEffect(() => {
     async function loadInitialData() {
@@ -171,7 +179,7 @@ export function VideoPlayer({
   const getStreamUrl = () => {
     const base = activeServer.url;
     const type = mediaType === 'tv' ? 'tv' : 'movie';
-    const identifier = imdbId || tmdbId;
+    const identifier = tmdbId || imdbId;
     
     // vidsrc.me uses a different query structure
     if (activeServer.id === 'vidsrc_me') {
@@ -194,15 +202,46 @@ export function VideoPlayer({
             isShieldActive={showAdGuard} 
             onRefresh={handleRefresh}
           />
-          <iframe
-            key={`${activeServer.id}-${tmdbId}-${season}-${episode}-${playerKey}`}
-            src={getStreamUrl()}
-            title={`Video player for ${title}`}
-            className="w-full h-full border-none z-10 relative"
-            allowFullScreen
-            allow="autoplay; encrypted-media; picture-in-picture"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
-          />
+          {isUnreleased && !isActuallyReleased && !forceStream ? (
+            <div className="absolute inset-0 z-40 bg-[#090514] flex flex-col items-center justify-center p-12 text-center space-y-6">
+              <div className="w-20 h-20 rounded-full bg-[--flx-cyan]/10 flex items-center justify-center animate-pulse">
+                <Calendar className="text-[--flx-cyan]" size={40} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bebas tracking-[4px] text-white">Coming Soon to Streaming</h3>
+                <p className="text-white/40 text-xs uppercase tracking-[2px] max-w-md">
+                   This media is not yet available on our streaming servers. 
+                   Expected release: <span className="text-white">{releaseDate}</span>
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                <button 
+                  onClick={() => handleModeChange('trailer')}
+                  className="flex items-center gap-3 px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[10px] font-black text-white uppercase tracking-[3px] transition-all"
+                >
+                  <Tv size={14} />
+                  Watch Official Trailer
+                </button>
+                <button 
+                  onClick={() => setForceStream(true)}
+                  className="flex items-center gap-3 px-8 py-3 bg-[--flx-cyan]/10 hover:bg-[--flx-cyan]/20 border border-[--flx-cyan]/20 rounded-full text-[10px] font-black text-[--flx-cyan] uppercase tracking-[3px] transition-all"
+                >
+                  <PlayCircle size={14} />
+                  Try Streaming Anyway
+                </button>
+              </div>
+            </div>
+          ) : (
+            <iframe
+              key={`${activeServer.id}-${tmdbId}-${season}-${episode}-${playerKey}`}
+              src={getStreamUrl()}
+              title={`Video player for ${title}`}
+              className="w-full h-full border-none z-10 relative"
+              allowFullScreen
+              allow="autoplay; encrypted-media; picture-in-picture"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+            />
+          )}
         </div>
       ) : currentMode === 'free' && (fullFilmYoutubeId || dynamicFreeId) ? (
         <div className="relative w-full h-full bg-black">
@@ -227,8 +266,9 @@ export function VideoPlayer({
               onEnd={() => handleModeChange('player')} 
             />
           ) : (
-             <div className="absolute inset-0 flex items-center justify-center">
-                <p className="text-[--flx-text-3] text-xs uppercase tracking-[3px] font-bold">No official trailer found</p>
+             <div className="absolute inset-0 flex items-center justify-center bg-[#090514] flex-col space-y-4">
+                <AlertCircle className="text-white/20" size={48} />
+                <p className="text-[--flx-text-3] text-[10px] uppercase tracking-[3px] font-bold">No official trailer available</p>
              </div>
           )}
         </div>
