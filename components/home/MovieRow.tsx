@@ -1,3 +1,5 @@
+'use client';
+
 import { MovieCard } from '@/components/movie/MovieCard';
 import { MovieCardSkeleton } from '@/components/ui/Skeleton';
 import { Badge } from '@/components/ui/Badge';
