@@ -58,8 +58,15 @@ export default function ProfilePage() {
       {/* ── BANNER AREA (X Inspired) ── */}
       <div className="relative h-[200px] md:h-[300px] w-full overflow-hidden bg-linear-to-br from-[#1a1333] to-[#090514]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(34,211,238,0.1),transparent_70%)]" />
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 left-0 w-full h-full bg-[url('https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center grayscale" />
+        <div className="absolute inset-0 opacity-40">
+          <div 
+            className="absolute top-0 left-0 w-full h-full bg-cover bg-center" 
+            style={{ 
+              backgroundImage: profile?.cover_url 
+                ? `url(${profile.cover_url})` 
+                : "url('https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop')" 
+            }} 
+          />
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-[--flx-bg] to-transparent" />
       </div>
@@ -72,10 +79,20 @@ export default function ProfilePage() {
           <div className="relative group">
             <div className="w-32 h-32 md:w-44 md:h-44 rounded-[40px] bg-linear-to-br from-[--flx-purple] to-[--flx-cyan] p-1 shadow-2xl">
               <div className="w-full h-full rounded-[38px] bg-[--flx-bg] flex items-center justify-center text-4xl md:text-6xl font-bebas text-white overflow-hidden relative">
-                 {initials}
-                 <button className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                    <Camera className="text-white" size={32} />
-                 </button>
+                 {profile?.avatar_url ? (
+                    <Image 
+                      src={profile.avatar_url} 
+                      alt="Avatar" 
+                      fill 
+                      className="object-cover" 
+                      unoptimized 
+                    />
+                  ) : (
+                    initials
+                  )}
+                  <Link href="/settings" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer z-10">
+                     <Camera className="text-white" size={32} />
+                  </Link>
               </div>
             </div>
             <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[--flx-cyan] border-4 border-[--flx-bg] flex items-center justify-center shadow-lg">
@@ -91,6 +108,12 @@ export default function ProfilePage() {
               </h1>
               <Badge variant="cyan" className="self-start px-3 py-1 text-[10px]">PREMIUM ACTIVE</Badge>
             </div>
+
+            {profile?.bio && (
+              <p className="text-sm text-[--flx-text-2] max-w-xl leading-relaxed italic">
+                &quot;{profile.bio}&quot;
+              </p>
+            )}
             
             <div className="flex flex-wrap items-center gap-6 text-xs font-bold text-[--flx-text-3] uppercase tracking-widest">
                <div className="flex items-center gap-2">
