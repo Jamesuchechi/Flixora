@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Play, SkipForward, Tv, Server, ChevronDown, Calendar, AlertCircle, PlayCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -23,20 +23,44 @@ interface VideoPlayerProps {
   backdrop: string;
   season?: number;
   episode?: number;
-  youtubeId?: string; // For trailers
-  fullFilmYoutubeId?: string; // For verified free full films
+  youtubeId?: string;
+  fullFilmYoutubeId?: string;
   nextEpisodeUrl?: string;
   overview?: string;
   imdbId?: string;
   releaseDate?: string;
   status?: string;
 }
+
 const SERVERS = [
-  { id: 'vidsrc_to', name: 'Server 1 (Clean)', url: 'https://vidsrc.to/embed/' },
-  { id: 'vidsrc_me', name: 'Server 2 (Pro)', url: 'https://vidsrc.me/embed/' },
-  { id: 'embed_su', name: 'Server 3 (Multi)', url: 'https://embed.su/embed/' },
-  { id: 'vidsrc', name: 'Server 4 (Legacy)', url: 'https://vidsrc.xyz/embed/' },
+  { 
+    id: 'vidsrc_cc', 
+    name: 'Server 1 (Fast)', 
+    url: 'https://vidsrc.cc/v2/embed/' 
+  },
+  { 
+    id: 'autoembed', 
+    name: 'Server 2 (Auto)', 
+    url: 'https://player.autoembed.cc/embed/' 
+  },
+  { 
+    id: 'vidlink', 
+    name: 'Server 3 (HD)', 
+    url: 'https://vidlink.pro/' 
+  },
+  { 
+    id: 'embed_su', 
+    name: 'Server 4 (Backup)', 
+    url: 'https://embed.su/embed/' 
+  },
+  { 
+    id: 'twoembed', 
+    name: 'Server 5 (Alt)', 
+    url: 'https://www.2embed.cc/embed/' 
+  },
 ];
+
+const CURRENT_TIME = Date.now();
 
 export function VideoPlayer({
   tmdbId,
@@ -57,8 +81,12 @@ export function VideoPlayer({
   const pathname = usePathname();
   const initialMode = searchParams.get('mode') as 'player' | 'trailer' | 'free' | null;
 
+  // FIX 1: Use local state as the source of truth.
+  // initialMode only seeds the initial value — after that, `mode` drives everything.
   const [mode, setMode] = useState<'player' | 'trailer' | 'free'>(
-    initialMode || 'player'
+    initialMode === 'free' && fullFilmYoutubeId ? 'free'
+    : initialMode === 'trailer' ? 'trailer'
+    : 'player'
   );
   const [activeServer, setActiveServer] = useState(SERVERS[0]);
   const [showServerList, setShowServerList] = useState(false);
@@ -73,8 +101,17 @@ export function VideoPlayer({
   const [forceStream, setForceStream] = useState(false);
   const youtubeRef = useRef<YouTubePlayerRef>(null);
 
-  const isUnreleased = releaseDate ? new Date(releaseDate) > new Date() : false;
-  const isActuallyReleased = status === 'Released' || status === 'Returning Series' || status === 'Ended';
+  const isUnreleased = useMemo(() => {
+    if (!releaseDate) return false;
+    const releaseMs = new Date(releaseDate).getTime();
+    const nowMs = CURRENT_TIME;
+    // Only treat as unreleased if date is clearly in the future (>1 day buffer)
+    // AND status is not a released/active value
+    const isFutureDate = releaseMs > nowMs + 86_400_000;
+    const releasedStatuses = ['Released', 'Returning Series', 'Ended', 'Canceled'];
+    const isConfirmedReleased = status ? releasedStatuses.includes(status) : false;
+    return isFutureDate && !isConfirmedReleased;
+  }, [releaseDate, status]);
 
   useEffect(() => {
     async function loadInitialData() {
@@ -113,9 +150,6 @@ export function VideoPlayer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Sync URL changes to local state without triggering cascading renders
-  const currentMode = initialMode || mode;
-
   const handleRefresh = () => {
     setPlayerKey(prev => prev + 1);
     setShowAdGuard(true);
@@ -125,7 +159,6 @@ export function VideoPlayer({
     if (duration > 0) {
       setCurrentTime(seconds);
       const percent = Math.floor((seconds / duration) * 100);
-      // Sync every 5% to avoid spamming
       if (percent % 5 === 0) {
         await updateWatchProgress(tmdbId, mediaType, percent, season, episode);
       }
@@ -140,8 +173,9 @@ export function VideoPlayer({
   }, [showAdGuard]);
 
   const handleModeChange = (newMode: 'player' | 'trailer' | 'free') => {
+    // FIX 1 cont: Update local state first, then sync URL
     setMode(newMode);
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(searchParams.toString());
     params.set('mode', newMode);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     if (newMode === 'player') {
@@ -156,12 +190,11 @@ export function VideoPlayer({
     setShowAdGuard(true);
     setTimeout(() => setShowAdGuard(false), 4000);
   };
-  
+
   const handleAISearch = async () => {
     setIsSearchingAI(true);
     try {
-      const year = ""; // We could pass this as a prop, but matcher handles it
-      const matchedId = await findFullMovieOnYouTube(tmdbId, title, year, mediaType);
+      const matchedId = await findFullMovieOnYouTube(tmdbId, title, "", mediaType);
       if (matchedId) {
         setDynamicFreeId(matchedId);
         setMode('free');
@@ -175,34 +208,62 @@ export function VideoPlayer({
     }
   };
 
-  // Generate the professional embed URL using TMDB ID and selected Server
   const getStreamUrl = () => {
-    const base = activeServer.url;
-    const type = mediaType === 'tv' ? 'tv' : 'movie';
+    const { id } = activeServer;
     const identifier = tmdbId || imdbId;
-    
-    // vidsrc.me uses a different query structure
-    if (activeServer.id === 'vidsrc_me') {
-      return `${base}${type}?${mediaType === 'tv' ? `tmdb=${tmdbId}&s=${season}&e=${episode}` : `tmdb=${tmdbId}`}`;
+
+    if (id === 'vidsrc_cc') {
+      return mediaType === 'tv'
+        ? `https://vidsrc.cc/v2/embed/tv/${identifier}/${season}/${episode}`
+        : `https://vidsrc.cc/v2/embed/movie/${identifier}`;
     }
 
-    if (mediaType === 'tv') {
-      return `${base}${type}/${identifier}/${season}/${episode}`;
+    if (id === 'autoembed') {
+      return mediaType === 'tv'
+        ? `https://player.autoembed.cc/embed/tv/${identifier}/${season}/${episode}`
+        : `https://player.autoembed.cc/embed/movie/${identifier}`;
     }
-    return `${base}${type}/${identifier}`;
+
+    if (id === 'vidlink') {
+      return mediaType === 'tv'
+        ? `https://vidlink.pro/tv/${identifier}/${season}/${episode}`
+        : `https://vidlink.pro/movie/${identifier}`;
+    }
+
+    if (id === 'embed_su') {
+      return mediaType === 'tv'
+        ? `https://embed.su/embed/tv/${identifier}/${season}/${episode}`
+        : `https://embed.su/embed/movie/${identifier}`;
+    }
+
+    if (id === 'twoembed') {
+      // 2embed often prefers IMDb for movies, but can use TMDB too. 
+      // We'll stick to identifier but use their specific TV format.
+      return mediaType === 'tv'
+        ? `https://www.2embed.cc/embedtv/${identifier}&s=${season}&e=${episode}`
+        : `https://www.2embed.cc/embed/${identifier}`;
+    }
+
+    // fallback
+    return mediaType === 'tv'
+      ? `https://vidsrc.cc/v2/embed/tv/${identifier}/${season}/${episode}`
+      : `https://vidsrc.cc/v2/embed/movie/${identifier}`;
   };
+
+  // Determine what the free video ID is
+  const activeFreeId = dynamicFreeId || fullFilmYoutubeId;
 
   return (
     <div className="relative w-full aspect-video rounded-[32px] overflow-hidden bg-[#090514] shadow-2xl border border-white/5 group">
-      
+
       {/* Player Modes */}
-      {currentMode === 'player' ? (
+      {mode === 'player' ? (
         <div className="w-full h-full relative">
-          <SmartGuard 
-            isShieldActive={showAdGuard} 
+          <SmartGuard
+            isShieldActive={showAdGuard}
             onRefresh={handleRefresh}
           />
-          {isUnreleased && !isActuallyReleased && !forceStream ? (
+          {isUnreleased && !forceStream ? (
             <div className="absolute inset-0 z-40 bg-[#090514] flex flex-col items-center justify-center p-12 text-center space-y-6">
               <div className="w-20 h-20 rounded-full bg-[--flx-cyan]/10 flex items-center justify-center animate-pulse">
                 <Calendar className="text-[--flx-cyan]" size={40} />
@@ -210,19 +271,19 @@ export function VideoPlayer({
               <div className="space-y-2">
                 <h3 className="text-2xl font-bebas tracking-[4px] text-white">Coming Soon to Streaming</h3>
                 <p className="text-white/40 text-xs uppercase tracking-[2px] max-w-md">
-                   This media is not yet available on our streaming servers. 
-                   Expected release: <span className="text-white">{releaseDate}</span>
+                  This media is not yet available on our streaming servers.
+                  Expected release: <span className="text-white">{releaseDate}</span>
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-4">
-                <button 
+                <button
                   onClick={() => handleModeChange('trailer')}
                   className="flex items-center gap-3 px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[10px] font-black text-white uppercase tracking-[3px] transition-all"
                 >
                   <Tv size={14} />
                   Watch Official Trailer
                 </button>
-                <button 
+                <button
                   onClick={() => setForceStream(true)}
                   className="flex items-center gap-3 px-8 py-3 bg-[--flx-cyan]/10 hover:bg-[--flx-cyan]/20 border border-[--flx-cyan]/20 rounded-full text-[10px] font-black text-[--flx-cyan] uppercase tracking-[3px] transition-all"
                 >
@@ -243,33 +304,33 @@ export function VideoPlayer({
             />
           )}
         </div>
-      ) : currentMode === 'free' && (fullFilmYoutubeId || dynamicFreeId) ? (
+      ) : mode === 'free' && activeFreeId ? (
         <div className="relative w-full h-full bg-black">
-          <YouTubePlayer 
+          <YouTubePlayer
             ref={youtubeRef}
-            videoId={(dynamicFreeId || fullFilmYoutubeId) as string} 
-            title={title} 
+            videoId={activeFreeId}
+            title={title}
             startTime={typeof window !== 'undefined' ? Number(new URLSearchParams(window.location.search).get('t')) || 0 : 0}
             onProgress={(s, d) => handleProgress(s, d)}
           />
           <div className="absolute bottom-6 left-6 z-20">
-            <ReportButton videoId={(dynamicFreeId || fullFilmYoutubeId) as string} title={title} />
+            <ReportButton videoId={activeFreeId} title={title} />
           </div>
         </div>
       ) : (
         /* Trailer Mode (YouTube) */
         <div className="relative w-full h-full bg-black">
           {youtubeId ? (
-            <YouTubePlayer 
-              videoId={youtubeId as string} 
-              title={title} 
-              onEnd={() => handleModeChange('player')} 
+            <YouTubePlayer
+              videoId={youtubeId}
+              title={title}
+              onEnd={() => handleModeChange('player')}
             />
           ) : (
-             <div className="absolute inset-0 flex items-center justify-center bg-[#090514] flex-col space-y-4">
-                <AlertCircle className="text-white/20" size={48} />
-                <p className="text-[--flx-text-3] text-[10px] uppercase tracking-[3px] font-bold">No official trailer available</p>
-             </div>
+            <div className="absolute inset-0 flex items-center justify-center bg-[#090514] flex-col space-y-4">
+              <AlertCircle className="text-white/20" size={48} />
+              <p className="text-[--flx-text-3] text-[10px] uppercase tracking-[3px] font-bold">No official trailer available</p>
+            </div>
           )}
         </div>
       )}
@@ -279,33 +340,33 @@ export function VideoPlayer({
         <div className="flex gap-2 pointer-events-auto">
           {/* Main Toggle */}
           <div className="flex p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl">
-            {(fullFilmYoutubeId || dynamicFreeId) && (
-              <button 
+            {activeFreeId && (
+              <button
                 onClick={() => handleModeChange('free')}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
-                  mode === 'free' || currentMode === 'free' ? "bg-[--flx-cyan] text-black shadow-lg" : "text-white/60 hover:text-white"
+                  mode === 'free' ? "bg-[--flx-cyan] text-black shadow-lg" : "text-white/60 hover:text-white"
                 )}
               >
                 <div className="w-2 h-2 rounded-full bg-black animate-pulse" />
                 WATCH FREE (NO ADS)
               </button>
             )}
-            <button 
+            <button
               onClick={() => handleModeChange('player')}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
-                currentMode === 'player' ? "bg-white text-black shadow-lg" : "text-white/60 hover:text-white"
+                mode === 'player' ? "bg-white text-black shadow-lg" : "text-white/60 hover:text-white"
               )}
             >
-              <Play size={12} fill={currentMode === 'player' ? "black" : "none"} />
+              <Play size={12} fill={mode === 'player' ? "black" : "none"} />
               STREAM
             </button>
-            <button 
+            <button
               onClick={() => handleModeChange('trailer')}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
-                currentMode === 'trailer' ? "bg-[--flx-purple] text-white shadow-lg" : "text-white/60 hover:text-white"
+                mode === 'trailer' ? "bg-[--flx-purple] text-white shadow-lg" : "text-white/60 hover:text-white"
               )}
             >
               <Tv size={12} />
@@ -314,8 +375,8 @@ export function VideoPlayer({
           </div>
 
           {/* AI Search / Recovery */}
-          {mode === 'player' && !fullFilmYoutubeId && !dynamicFreeId && (
-            <button 
+          {mode === 'player' && !activeFreeId && (
+            <button
               onClick={handleAISearch}
               disabled={isSearchingAI}
               className="flex items-center gap-2 px-4 py-3 bg-[--flx-purple]/10 hover:bg-[--flx-purple]/20 border border-[--flx-purple]/20 rounded-2xl text-[10px] font-bold text-[--flx-purple] tracking-widest transition-all active:scale-95 disabled:opacity-50"
@@ -330,7 +391,7 @@ export function VideoPlayer({
           )}
 
           {/* AI Advisor Button */}
-          <button 
+          <button
             onClick={() => setIsAssistantOpen(!isAssistantOpen)}
             className={cn(
               "flex items-center gap-2 px-4 py-3 backdrop-blur-xl border border-white/10 rounded-2xl text-[10px] font-bold tracking-widest transition-all",
@@ -344,7 +405,7 @@ export function VideoPlayer({
           {/* Server Switcher */}
           {mode === 'player' && (
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setShowServerList(!showServerList)}
                 aria-label="Select streaming server"
                 aria-expanded={showServerList}
@@ -385,7 +446,7 @@ export function VideoPlayer({
 
       {/* Next Episode Overlay */}
       {mediaType === 'tv' && nextEpisodeUrl && (
-        <button 
+        <button
           onClick={() => router.push(nextEpisodeUrl)}
           aria-label={`Watch next episode: Season ${season} Episode ${Number(episode || 0) + 1}`}
           className="absolute top-24 right-8 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-all active:scale-95 group/next shadow-2xl opacity-0 group-hover:opacity-100 -translate-y-4 group-hover:translate-y-0 duration-500"
@@ -405,7 +466,7 @@ export function VideoPlayer({
       <div className="absolute -top-32 -right-32 w-96 h-96 bg-[--flx-cyan]/10 blur-[150px] rounded-full pointer-events-none" />
 
       {/* AI Assistant Sidebar */}
-      <SceneAssistant 
+      <SceneAssistant
         isOpen={isAssistantOpen}
         onClose={() => setIsAssistantOpen(false)}
         title={title}
@@ -413,7 +474,7 @@ export function VideoPlayer({
         plotContext={overview}
       />
 
-      <SkipPrompt 
+      <SkipPrompt
         currentTime={currentTime}
         segments={skipSegments}
         onSkip={(to) => {
