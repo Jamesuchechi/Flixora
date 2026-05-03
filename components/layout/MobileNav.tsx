@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { icon: Home,    label: 'Home',     href: '/home' },
   { icon: Compass, label: 'Explore',  href: '/search' },
   { icon: List,    label: 'My List',  href: '/profile' },
-  { icon: User,    label: 'Profile',  href: '/settings' },
+  { icon: User,    label: 'Profile',  href: '/profile' },
 ];
 
 export function MobileNav() {

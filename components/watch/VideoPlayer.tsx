@@ -43,16 +43,12 @@ export function VideoPlayer({
   // Generate the professional embed URL using TMDB ID and selected Server
   const getStreamUrl = () => {
     const base = activeServer.url;
-    if (activeServer.id === 'embed_su') {
-      const type = mediaType === 'tv' ? 'tv' : 'movie';
-      return `${base}${type}/${tmdbId}${mediaType === 'tv' ? `/${season}/${episode}` : ''}`;
-    }
+    const type = mediaType === 'tv' ? 'tv' : 'movie';
     
-    // Default Vidsrc format
     if (mediaType === 'tv') {
-      return `${base}tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`;
+      return `${base}${type}/${tmdbId}/${season}/${episode}`;
     }
-    return `${base}movie?tmdb=${tmdbId}`;
+    return `${base}${type}/${tmdbId}`;
   };
 
   return (

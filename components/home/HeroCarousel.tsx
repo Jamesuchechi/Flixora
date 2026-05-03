@@ -135,7 +135,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                 Featured Selection
               </Badge>
 
-              <h1 className="font-bebas text-[90px] leading-[0.85] tracking-[1px] mb-6 text-[--flx-text-1]">
+              <h1 className="font-bebas text-[50px] md:text-[90px] leading-[0.85] tracking-[1px] mb-6 text-[--flx-text-1]">
                 {title.split(' ').map((word, i, arr) => (
                   <span key={i} className={i === Math.floor(arr.length / 2) ? 'bg-linear-to-r from-[--flx-cyan] to-[--flx-purple] bg-clip-text text-transparent' : ''}>
                     {word}{' '}
@@ -183,7 +183,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                 </Link>
                 <button 
                   aria-label="Add to My List"
-                  className="w-[52px] h-[52px] flex items-center justify-center bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/10 text-white rounded-xl transition-all hover:rotate-90 cursor-pointer"
+                  className="hidden sm:flex w-[52px] h-[52px] items-center justify-center bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/10 text-white rounded-xl transition-all hover:rotate-90 cursor-pointer"
                 >
                   <Plus size={22} />
                 </button>
@@ -192,8 +192,8 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
           </AnimatePresence>
         </div>
 
-        {/* Side Stack */}
-        <div className="absolute right-12 bottom-20 flex flex-col items-end gap-6">
+        {/* Side Stack - Hidden on Mobile */}
+        <div className="hidden lg:flex absolute right-12 bottom-20 flex-col items-end gap-6">
           <div className="flex gap-4 items-end">
              {sideItems.map((item, idx) => {
                const t = 'title' in item ? (item as TMDBMovie).title : (item as TMDBTVShow).name;
