@@ -31,8 +31,9 @@ interface VideoPlayerProps {
 }
 const SERVERS = [
   { id: 'vidsrc_to', name: 'Server 1 (Clean)', url: 'https://vidsrc.to/embed/' },
-  { id: 'embed_su', name: 'Server 2 (Multi)', url: 'https://embed.su/embed/' },
-  { id: 'vidsrc', name: 'Server 3 (Legacy)', url: 'https://vidsrc.xyz/embed/' },
+  { id: 'vidsrc_me', name: 'Server 2 (Pro)', url: 'https://vidsrc.me/embed/' },
+  { id: 'embed_su', name: 'Server 3 (Multi)', url: 'https://embed.su/embed/' },
+  { id: 'vidsrc', name: 'Server 4 (Legacy)', url: 'https://vidsrc.xyz/embed/' },
 ];
 
 export function VideoPlayer({
@@ -53,7 +54,7 @@ export function VideoPlayer({
   const initialMode = searchParams.get('mode') as 'player' | 'trailer' | 'free' | null;
 
   const [mode, setMode] = useState<'player' | 'trailer' | 'free'>(
-    initialMode || (fullFilmYoutubeId ? 'free' : 'player')
+    initialMode || 'player'
   );
   const [activeServer, setActiveServer] = useState(SERVERS[0]);
   const [showServerList, setShowServerList] = useState(false);
@@ -172,6 +173,11 @@ export function VideoPlayer({
     const type = mediaType === 'tv' ? 'tv' : 'movie';
     const identifier = imdbId || tmdbId;
     
+    // vidsrc.me uses a different query structure
+    if (activeServer.id === 'vidsrc_me') {
+      return `${base}${type}?${mediaType === 'tv' ? `tmdb=${tmdbId}&s=${season}&e=${episode}` : `tmdb=${tmdbId}`}`;
+    }
+
     if (mediaType === 'tv') {
       return `${base}${type}/${identifier}/${season}/${episode}`;
     }

@@ -133,7 +133,7 @@ export default async function MovieDetailPage({ params, searchParams }: Props) {
               <p className="text-[15px] leading-relaxed text-[--flx-text-1]/70 font-light max-w-2xl">{movie.overview}</p>
 
               <div className="flex items-center gap-4 flex-wrap pt-4">
-                <Link href={`/watch/${movie.id}${mode === 'free' ? '?mode=free' : ''}`} className="flex items-center gap-3 bg-[--flx-purple] hover:bg-[--flx-purple-d] text-white font-bold text-sm px-10 py-4 rounded-2xl transition-all hover:-translate-y-1 shadow-xl shadow-[--flx-purple]/20 active:scale-95">
+                <Link href={`/watch/${movie.id}?type=movie${mode === 'free' ? '&mode=free' : ''}`} className="flex items-center gap-3 bg-[--flx-purple] hover:bg-[--flx-purple-d] text-white font-bold text-sm px-10 py-4 rounded-2xl transition-all hover:-translate-y-1 shadow-xl shadow-[--flx-purple]/20 active:scale-95">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
                   {progress && progress.progress > 0 ? `Resume at ${progress.progress}%` : 'Play Now'}
                 </Link>

@@ -178,7 +178,7 @@ export default async function SeriesDetailPage({ params, searchParams }: Props) 
               {/* Actions */}
               <div className="flex items-center gap-4 flex-wrap pt-4">
                 <Link
-                  href={`/watch/${show.id}?s=1&e=1${mode === 'free' ? '&mode=free' : ''}`}
+                  href={`/watch/${show.id}?type=tv&s=1&e=1${mode === 'free' ? '&mode=free' : ''}`}
                   className="flex items-center gap-3 bg-[--flx-purple] hover:bg-[--flx-purple-d] text-white font-bold text-sm px-10 py-4 rounded-2xl transition-all hover:-translate-y-1 shadow-xl shadow-[--flx-purple]/20 active:scale-95"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
