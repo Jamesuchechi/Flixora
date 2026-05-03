@@ -15,6 +15,7 @@ interface WatchPlayerWrapperProps {
   season?: number;
   episode?: number;
   youtubeId?: string;
+  fullFilmYoutubeId?: string;
   nextEpisodeUrl?: string;
 }
 

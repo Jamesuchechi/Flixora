@@ -33,7 +33,7 @@ export async function updateWatchProgress(
       episode: episode ?? null,
       updated_at: new Date().toISOString(),
     }, {
-      onConflict: 'user_id, tmdb_id'
+      onConflict: 'user_id, tmdb_id, media_type, season, episode'
     });
 
   if (error) {

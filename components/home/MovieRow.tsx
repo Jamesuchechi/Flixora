@@ -58,6 +58,8 @@ export function MovieRow({
                 ? (item as TMDBMovie).release_date
                 : (item as TMDBTVShow).first_air_date;
               const mtype    = item.media_type ?? (isMovie ? 'movie' : 'tv');
+              type MovieRowItem = (TMDBMovie | TMDBTVShow) & { is_free?: boolean };
+              const isFree   = (item as MovieRowItem).is_free;
 
               return (
                 <MovieCard
@@ -68,6 +70,7 @@ export function MovieRow({
                   rating={rating}
                   releaseDate={date}
                   mediaType={mtype}
+                  isFree={isFree}
                   rank={showRank ? i + 1 : undefined}
                 />
               );

@@ -260,8 +260,8 @@
 
 ---
 
-
 ## Phase 9 — YouTube Integration
+
 ### Free Films + Trailer Library + Smart Embedding
 
 > Goal: Give Flixora real, playable video content using YouTube as the video backend.
@@ -270,94 +270,103 @@
 ---
 
 ### 9.1 Trailer System (No Quota Risk)
-- [ ] Audit existing TMDB video key integration in Phase 3 — ensure trailer keys are cached
-- [ ] Build `TrailerPlayer` component using YouTube iframe API (replaces placeholder modal)
-- [ ] Auto-select best trailer: Official > Trailer > Teaser > Clip priority order
-- [ ] Add multiple trailer support — "Teaser", "Official Trailer", "Final Trailer" tabs
-- [ ] Implement trailer autoplay on movie detail page hero (muted, on scroll-into-view)
-- [ ] Add trailer thumbnail preview on MovieCard hover (200ms delay before play)
-- [ ] Build `TrailerGallery` component — grid of all videos for a title
-- [ ] Store trailer keys in Supabase cache table to reduce TMDB API calls
-- [ ] Handle region-locked trailers gracefully (fallback to next available)
+
+- [x] Audit existing TMDB video key integration in Phase 3 — ensure trailer keys are cached
+- [x] Build `TrailerPlayer` component using YouTube iframe API (replaces placeholder modal)
+- [x] Auto-select best trailer: Official > Trailer > Teaser > Clip priority order
+- [x] Add multiple trailer support — "Teaser", "Official Trailer", "Final Trailer" tabs
+- [x] Implement trailer autoplay on movie detail page hero (muted, on scroll-into-view)
+- [x] Add trailer thumbnail preview on MovieCard hover (200ms delay before play)
+- [x] Build `TrailerGallery` component — grid of all videos for a title
+- [x] Store trailer keys in Supabase cache table to reduce TMDB API calls
+- [x] Handle region-locked trailers gracefully (fallback to next available)
 
 ### 9.2 Free Full Films Library
-- [ ] Research and catalog legitimately free films on YouTube
-  - [ ] Studio-uploaded classics (Warner Archive, Sony Pictures, Paramount Vault)
-  - [ ] Public domain films (pre-1928, >30,000 titles)
-  - [ ] A24 free uploads, Mubi free screenings, Criterion Channel previews
-  - [ ] Documentary channels (DW, Al Jazeera, Vice, National Geographic)
-- [ ] Create `free_films` Supabase table: `{ tmdb_id, youtube_id, source, verified_at, region }`
-- [ ] Build admin curation tool for adding/verifying free film links
-- [ ] Build `FreeFilmsRow` component for home page — "Watch Free Now" section
-- [ ] Add "Free" badge variant to MovieCard when a free YouTube source exists
-- [ ] Build `/free` browse page — filterable by genre, decade, runtime
-- [ ] Implement link health checker (weekly cron) — detect removed/private videos
-- [ ] Auto-fallback: if YouTube link dies, remove badge and hide from free section
+
+- [x] Research and catalog legitimately free films on YouTube
+  - [x] Studio-uploaded classics (Warner Archive, Sony Pictures, Paramount Vault)
+  - [x] Public domain films (pre-1928, >30,000 titles)
+  - [x] A24 free uploads, Mubi free screenings, Criterion Channel previews
+  - [x] Documentary channels (DW, Al Jazeera, Vice, National Geographic)
+- [x] Create `free_films` Supabase table: `{ tmdb_id, youtube_id, source, verified_at, region }`
+- [x] Build admin curation tool for adding/verifying free film links
+- [x] Build `FreeFilmsRow` component for home page — "Watch Free Now" section
+- [x] Add "Free" badge variant to MovieCard when a free YouTube source exists
+- [x] Build `/free` browse page — filterable by genre, decade, runtime
+- [x] Implement link health checker (weekly cron) — detect removed/private videos
+- [x] Auto-fallback: if YouTube link dies, remove badge and hide from free section
 
 ### 9.3 YouTube Player Integration
-- [ ] Install and configure `react-youtube` or YouTube iframe API directly
-- [ ] Build `YouTubePlayer` component with Flixora UI overlay (controls, branding)
-- [ ] Implement custom controls over YouTube embed (play/pause, seek, volume, fullscreen)
-- [ ] Sync YouTube player progress with Supabase `watch_progress` table every 10s
-- [ ] Handle YouTube API quota gracefully — fallback messaging if limit hit
-- [ ] Add `?t=` timestamp support — deep link to specific timecodes
-- [ ] Picture-in-Picture support for YouTube player (Phase 15 full implementation)
-- [ ] Build unified `<VideoPlayer>` that switches between Plyr (HLS) and YouTube sources
+
+- [x] Install and configure `react-youtube` or YouTube iframe API directly
+- [x] Build `YouTubePlayer` component with Flixora UI overlay (controls, branding)
+- [x] Implement custom controls over YouTube embed (play/pause, seek, volume, fullscreen)
+- [x] Sync YouTube player progress with Supabase `watch_progress` table every 10s
+- [x] Handle YouTube API quota gracefully — fallback messaging if limit hit
+- [x] Add `?t=` timestamp support — deep link to specific timecodes
+- [x] Picture-in-Picture support for YouTube player (Phase 15 full implementation)
+- [x] Build unified `<VideoPlayer>` that switches between Plyr (HLS) and YouTube sources
 
 ### 9.4 YouTube Data API (Selective Use)
-- [ ] Set up YouTube Data API v3 project in Google Cloud Console
-- [ ] Store API key in env — `YOUTUBE_API_KEY`
-- [ ] Implement quota-aware client with daily usage tracking stored in Supabase
-- [ ] Use API only for: channel verification, video availability check, duration fetch
-- [ ] Never use API for search (costs 100 units — use TMDB instead)
-- [ ] Build quota dashboard in admin panel showing daily usage vs 10K limit
-- [ ] Implement Redis/Upstash cache for all YouTube API responses (24hr TTL)
-- [ ] Alert system: notify admin when quota reaches 80% usage
+
+- [x] Set up YouTube Data API v3 project in Google Cloud Console
+- [x] Store API key in env — `YOUTUBE_API_KEY`
+- [x] Implement quota-aware client with daily usage tracking stored in Supabase
+- [x] Use API only for: channel verification, video availability check, duration fetch
+- [x] Never use API for search (costs 100 units — use TMDB instead)
+- [x] Build quota dashboard in admin panel showing daily usage vs 10K limit
+- [x] Implement Redis/Upstash cache for all YouTube API responses (24hr TTL)
+- [x] Alert system: notify admin when quota reaches 80% usage
 
 ### 9.5 Content Compliance & Safety
-- [ ] ToS compliance audit — document what is and isn't permitted
-- [ ] Only embed videos the rights holder has made publicly available
-- [ ] Add DMCA takedown flow — remove films within 24hr of valid notice
-- [ ] Legal page: explain YouTube embedding policy and fair use basis
-- [ ] Region detection — hide content not available in user's country
-- [ ] Add content reporting button on all YouTube-sourced films
+
+- [x] ToS compliance audit — document what is and isn't permitted
+- [x] Only embed videos the rights holder has made publicly available
+- [x] Add DMCA takedown flow — remove films within 24hr of valid notice
+- [x] Legal page: explain YouTube embedding policy and fair use basis
+- [x] Region detection — hide content not available in user's country
+- [x] Add content reporting button on all YouTube-sourced films
 
 ---
 
 ## Phase 10 — AI Features
+
 ### Mood Recommendations · Scene Q&A · Smart Skip · Conversational Discovery
 
 > Goal: Make Flixora feel like it has a brilliant film-obsessed friend inside it.
-> Use Claude API (via Anthropic) as the AI backbone.
+> Use Groq API (via Anthropic) as the AI backbone.
 
 ---
 
 ### 10.1 "What Should I Watch?" — Conversational AI
+
 - [ ] Design conversational flow: mood → context → constraints → recommendation
 - [ ] Build `WatchAdvisor` component — floating chat bubble on home page
-- [ ] Connect to Claude API via `/api/ai/advisor` route
-- [ ] System prompt engineering: train Claude on Flixora's catalog context
+- [ ] Connect to Groq API via `/api/ai/advisor` route
+- [ ] System prompt engineering: train Groq on Flixora's catalog context
 - [ ] Multi-turn conversation support — remember previous messages in session
-- [ ] Claude returns structured JSON: `{ tmdb_id, title, reason, mood_match, trailer_key }`
+- [ ] Groq returns structured JSON: `{ tmdb_id, title, reason, mood_match, trailer_key }`
 - [ ] Render recommendation as a rich card with poster, reasoning, and direct play button
-- [ ] Add "Not quite" button — Claude refines based on rejection feedback
+- [ ] Add "Not quite" button — Groq refines based on rejection feedback
 - [ ] Session persistence — save advisor conversations to Supabase per user
 - [ ] Build conversation history UI — "Past recommendations" in profile
 - [ ] Rate limiting: 10 AI queries/day on Free plan, unlimited on Pro
-- [ ] Streaming responses — use Claude's streaming API for real-time text output
+- [ ] Streaming responses — use Groq's streaming API for real-time text output
 
 ### 10.2 Scene Q&A — "What Just Happened?"
+
 - [ ] Build `SceneAssistant` component — slide-out panel during playback
 - [ ] Triggered by keyboard shortcut (`?`) or button in player controls
-- [ ] Context injection: pass current movie/series + timestamp + episode to Claude
+- [ ] Context injection: pass current movie/series + timestamp + episode to Groq
 - [ ] Pre-built question templates: "Who is this character?", "What did I miss?", "Explain this scene"
 - [ ] Free-form question input with send button
-- [ ] Claude answers with: character context, plot recap, thematic meaning
+- [ ] Groq answers with: character context, plot recap, thematic meaning
 - [ ] Spoiler mode toggle — "Don't tell me what happens next"
 - [ ] Cache common Q&A pairs per title to reduce API costs
 - [ ] Rate limiting: 5 scene queries/day Free, 50/day Pro
 
 ### 10.3 Smart Skip Detection
+
 - [ ] Research open-source intro/credits detection (AniSkip API for anime, custom for others)
 - [ ] Integrate AniSkip API for anime series — returns exact timestamps for intros/outros
 - [ ] For non-anime: use YouTube chapter markers (where available) as skip boundaries
@@ -367,14 +376,16 @@
 - [ ] Build skip learning system — if 80%+ of users skip a segment, auto-suggest for all
 
 ### 10.4 AI-Generated Descriptions & Mood Tags
-- [ ] For titles with short/missing TMDB descriptions, use Claude to generate enriched synopsis
+
+- [ ] For titles with short/missing TMDB descriptions, use Groq to generate enriched synopsis
 - [ ] Generate mood tags automatically: "melancholic", "edge-of-your-seat", "feel-good", "mind-bending"
 - [ ] Store AI-generated metadata in `ai_metadata` Supabase table — never overwrite TMDB data
 - [ ] Build mood tag filter on browse pages (alongside genre)
 - [ ] "Vibe search" — type a feeling, AI maps it to a genre+mood combination and queries TMDB
 
 ### 10.5 AI Trailer Analysis
-- [ ] On trailer watch: Claude analyzes title, genre, cast from TMDB and generates 3-line "what to expect"
+
+- [ ] On trailer watch: Groq analyzes title, genre, cast from TMDB and generates 3-line "what to expect"
 - [ ] Show alongside trailer: "If you liked X, you'll love this because..."
 - [ ] Tone indicator: Action level, emotional depth, pace (fast/slow), darkness (light/dark)
 - [ ] Pre-generate for top 1000 titles and cache — don't run live
@@ -382,6 +393,7 @@
 ---
 
 ## Phase 11 — Social Layer
+
 ### Watch Parties · Friends · Activity Feed · Shared Lists
 
 > Goal: Make watching Flixora a shared experience — drive viral growth through social features.
@@ -389,6 +401,7 @@
 ---
 
 ### 11.1 User Profiles (Public)
+
 - [ ] Public profile page: `/u/[username]`
 - [ ] Profile shows: avatar, bio, favorite genres, recently watched (if public), lists
 - [ ] Privacy settings: public / friends only / private per section
@@ -398,6 +411,7 @@
 - [ ] Profile badges: "Early Member", "Cinephile" (500+ films), "Binge Watcher" (10+ eps/day)
 
 ### 11.2 Friends & Following System
+
 - [ ] `friendships` Supabase table: `{ requester_id, addressee_id, status, created_at }`
 - [ ] Send friend request — notification to recipient
 - [ ] Accept / decline / block flow
@@ -408,6 +422,7 @@
 - [ ] Block list management in settings
 
 ### 11.3 Activity Feed
+
 - [ ] `activity_events` Supabase table: `{ user_id, type, payload, created_at }`
 - [ ] Event types: `watched`, `rated`, `added_to_list`, `created_list`, `joined_watch_party`
 - [ ] Real-time feed using Supabase Realtime subscriptions
@@ -419,6 +434,7 @@
 - [ ] Notification bell: new activity from friends triggers notification
 
 ### 11.4 Watch Parties
+
 - [ ] `watch_parties` Supabase table: `{ id, host_id, tmdb_id, youtube_id, state, created_at }`
 - [ ] `party_members` table: `{ party_id, user_id, joined_at }`
 - [ ] `party_messages` table: `{ party_id, user_id, content, timestamp, created_at }`
@@ -433,6 +449,7 @@
 - [ ] End party screen: group rating prompt, share what you watched
 
 ### 11.5 Reaction Timeline
+
 - [ ] During playback, user can tap emoji reactions (😂 😱 😭 🔥 💀)
 - [ ] Reactions stored with timestamp: `{ tmdb_id, user_id, emoji, timestamp_seconds }`
 - [ ] After watching: see a reaction heatmap on the scrubber timeline
@@ -441,6 +458,7 @@
 - [ ] Toggle: "Show friends' reactions" / "Show all reactions" / "Hide reactions"
 
 ### 11.6 Shared Watchlists & Lists
+
 - [ ] Collaborative lists: invite friends to co-edit a list
 - [ ] List roles: Owner, Editor, Viewer
 - [ ] Real-time list updates via Supabase Realtime
@@ -453,6 +471,7 @@
 ---
 
 ## Phase 12 — Personalization Engine
+
 ### Taste Profile · % Match · Director Following · Viewing DNA
 
 > Goal: Make every user feel like Flixora was built specifically for them.
@@ -460,6 +479,7 @@
 ---
 
 ### 12.1 Taste Profile — Onboarding
+
 - [ ] Post-signup onboarding flow: rate 10 curated films (visual card swipe UI)
 - [ ] 5-star rating system with half-stars — stored in `ratings` Supabase table
 - [ ] Skip option for films not seen — "Haven't watched this"
@@ -471,6 +491,7 @@
 - [ ] Profile completeness indicator — more data = better recommendations
 
 ### 12.2 % Match Score
+
 - [ ] Algorithm: weight genre match (40%) + rating correlation (30%) + director/actor overlap (20%) + era preference (10%)
 - [ ] Display on every MovieCard for logged-in users: "94% Match"
 - [ ] Color coding: green (>85%), yellow (70–85%), neutral (<70%)
@@ -480,6 +501,7 @@
 - [ ] Improve match accuracy as user rates more films (Bayesian update)
 
 ### 12.3 Director & Actor Following
+
 - [ ] Follow any director, actor, or writer from their filmography page
 - [ ] `/people/[id]` page: full filmography, bio from TMDB, "Follow" button
 - [ ] `followed_people` Supabase table: `{ user_id, tmdb_person_id, type, followed_at }`
@@ -490,6 +512,7 @@
 - [ ] Unfollow with single click
 
 ### 12.4 Viewing DNA Dashboard
+
 - [ ] `/profile/dna` page — visual statistics experience
 - [ ] Total hours watched (with fun comparisons: "That's X flights to Tokyo")
 - [ ] Genre breakdown: animated donut chart
@@ -505,6 +528,7 @@
 - [ ] Annual "Flixora Wrapped" — year-end summary (inspired by Spotify Wrapped)
 
 ### 12.5 Smart Home Page Personalization
+
 - [ ] Replace static "Popular Movies" row with "Picked for You" — personalized ranking
 - [ ] "Because you watched X" rows — dynamic, based on recent viewing
 - [ ] "New from Directors You Follow" row — auto-populated
@@ -515,6 +539,7 @@
 ---
 
 ## Phase 13 — Discovery Features
+
 ### Rabbit Hole · One Degree From · Decade Browser · Double Feature
 
 > Goal: Make finding something to watch feel like an adventure, not a chore.
@@ -522,6 +547,7 @@
 ---
 
 ### 13.1 The Rabbit Hole
+
 - [ ] On any movie/series detail page: "Start a Rabbit Hole" button
 - [ ] Algorithm builds a chain of 5 connected films
   - Connection types: same director → same actor → same genre → same era → same country
@@ -534,6 +560,7 @@
 - [ ] Curated staff rabbit holes: "The Coen Brothers rabbit hole", "Neon-drenched cinema"
 
 ### 13.2 One Degree From
+
 - [ ] Connection graph: start from a film, see everything connected to it
 - [ ] Connection layers: cast, crew, cinematographer, composer, writer, producer
 - [ ] Visual force-directed graph (D3.js) — interactive, zoomable
@@ -543,6 +570,7 @@
 - [ ] Export connection graph as shareable image
 
 ### 13.3 Decade Browser
+
 - [ ] `/browse/[decade]` — e.g. `/browse/1970s`
 - [ ] Era-accurate UI aesthetic per decade (film grain for 70s, VHS for 80s, etc.)
 - [ ] Curated context: what was happening in cinema that decade
@@ -551,6 +579,7 @@
 - [ ] Decade comparison slider: put two decades side by side
 
 ### 13.4 Country Cinema Explorer
+
 - [ ] `/browse/country/[code]` — e.g. `/browse/country/kr` (South Korea)
 - [ ] Interactive world map — click a country to explore its cinema
 - [ ] Cultural context: brief description of the country's film tradition
@@ -559,6 +588,7 @@
 - [ ] Awards filter: Palme d'Or, Academy Award for International Film, etc.
 
 ### 13.5 Double Feature Suggester
+
 - [ ] "Double Feature" button on every movie detail page
 - [ ] Algorithm picks a perfect pairing — thematic, tonal, or contrasting
 - [ ] Shows why they pair: "Both explore grief through magical realism"
@@ -567,6 +597,7 @@
 - [ ] "Triple bill" mode — extend to 3 films for a full cinema night
 
 ### 13.6 Advanced Search & Filters
+
 - [ ] Filter by: decade, country, language, runtime, mood, award winner, streaming source
 - [ ] Sort by: match score, release date, runtime, rating, popularity, alphabetical
 - [ ] Boolean search: "Sci-Fi AND (Ridley Scott OR Denis Villeneuve)"
@@ -577,6 +608,7 @@
 ---
 
 ## Phase 14 — Cinephile Tools
+
 ### Film Diary · Collections · Stats · Comparison · Community Lists
 
 > Goal: Give serious film lovers the tools they've always wanted — built right into Flixora.
@@ -584,6 +616,7 @@
 ---
 
 ### 14.1 Personal Film Diary
+
 - [ ] `/diary` page — chronological log of everything watched
 - [ ] Each entry: film poster, date watched, personal rating, notes (up to 500 chars)
 - [ ] Rewatches supported — each viewing is a separate diary entry
@@ -595,6 +628,7 @@
 - [ ] "This day in your cinema history" — home page widget showing what you watched 1/2/3 years ago
 
 ### 14.2 5-Star Rating System
+
 - [ ] Half-star support (0.5 increments, 0–5 scale)
 - [ ] Rating stored in `ratings` Supabase table: `{ user_id, tmdb_id, rating, created_at }`
 - [ ] Rating UI: tap-to-rate stars on movie detail page and after watching
@@ -604,6 +638,7 @@
 - [ ] Distribution chart — see breakdown of all your ratings (how many 5-stars given, etc.)
 
 ### 14.3 Lists & Collections
+
 - [ ] Create unlimited custom lists (Free: 3 lists, Pro: unlimited)
 - [ ] List types: Ranked, Unranked, Watchlist, Diary-linked
 - [ ] Cover image: auto-generated from first 4 films (quad poster) or custom
@@ -615,6 +650,7 @@
 - [ ] List completion tracker: "You've seen 14/20 films on this list"
 
 ### 14.4 Film Comparison Mode
+
 - [ ] Side-by-side comparison of any two films
 - [ ] Compare: rating, runtime, budget, revenue, cast overlap, crew overlap, genre
 - [ ] "Which should I watch first?" — AI gives a recommendation with reasoning
@@ -622,6 +658,7 @@
 - [ ] Historical battles archive — see all-time results ("The Godfather vs Goodfellas: 67% voted Godfather")
 
 ### 14.5 Watch Statistics Dashboard
+
 - [ ] `/profile/stats` — full statistics hub
 - [ ] Total films / series / episodes watched (lifetime)
 - [ ] Total hours watched (with fun equivalents)
@@ -635,6 +672,7 @@
 - [ ] Achievements/badges unlocked (see 14.6)
 
 ### 14.6 Achievements & Gamification
+
 - [ ] Achievement system stored in `achievements` Supabase table
 - [ ] Achievement tiers: Bronze, Silver, Gold, Platinum
 - [ ] Sample achievements:
@@ -654,6 +692,7 @@
 ---
 
 ## Phase 15 — Technical Excellence
+
 ### PiP · Chromecast · Offline · Accessibility · Performance · Native Apps
 
 > Goal: Make Flixora the most technically polished streaming experience ever built.
@@ -661,6 +700,7 @@
 ---
 
 ### 15.1 Picture-in-Picture
+
 - [ ] Native browser PiP API integration in VideoPlayer
 - [ ] Custom PiP controls: play/pause, close, return-to-tab
 - [ ] PiP persists when switching between Flixora pages
@@ -669,6 +709,7 @@
 - [ ] PiP position memory — remembers last position on screen
 
 ### 15.2 Chromecast & AirPlay
+
 - [ ] Google Cast SDK integration — cast to Chromecast and Android TV
 - [ ] AirPlay support via native browser API (iOS/macOS Safari)
 - [ ] Cast control UI in player: cast button in controls bar
@@ -677,6 +718,7 @@
 - [ ] Queue management while casting
 
 ### 15.3 Progressive Web App (PWA)
+
 - [ ] Full PWA manifest: name, icons, theme color, display mode
 - [ ] Service worker: cache app shell and static assets
 - [ ] Offline browse mode: view cached movie details without internet
@@ -688,6 +730,7 @@
 - [ ] Android install prompt with native install dialog
 
 ### 15.4 Accessibility (WCAG 2.1 AA)
+
 - [ ] Full keyboard navigation for all interactive elements
 - [ ] Focus management: focus trap in modals, restore focus on close
 - [ ] ARIA labels on all icon buttons, dynamic regions
@@ -701,9 +744,8 @@
 - [ ] Audio description track support where available
 - [ ] Color blind modes: Deuteranopia, Protanopia, Tritanopia filters
 
-
-
 ### 15.5 Performance & Infrastructure
+
 - [ ] Move to Vercel Edge Functions for all API routes — sub-50ms response
 - [ ] Implement Redis (Upstash) caching layer for TMDB + YouTube responses
 - [ ] Database query optimization: add indexes on all foreign keys and filter columns
@@ -719,6 +761,7 @@
 - [ ] Database connection pooling via Supabase PgBouncer
 
 ### 15.6 Admin Dashboard
+
 - [ ] `/admin` — protected by admin role in Supabase
 - [ ] User management: view, search, ban, restore accounts
 - [ ] Content management: add/remove free YouTube film links
@@ -732,6 +775,7 @@
 ---
 
 ## Bonus Phase — Monetization & Growth
+
 ### When Flixora is ready to scale commercially
 
 - [ ] Stripe integration — subscription billing (Free/Pro/Family)
@@ -758,8 +802,6 @@
 - **Documentation updated before PR is merged**
 
 ---
-
-
 
 ## Phase 16 — Testing & QA
 

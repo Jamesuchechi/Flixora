@@ -6,6 +6,7 @@ import { MovieRow } from "@/components/home/MovieRow";
 import { FeaturedRow } from "@/components/home/FeaturedRow";
 import { GenreTabs } from "@/components/home/GenreTabs";
 import { ContinueWatching } from "@/components/home/ContinueWatching";
+import { FreeFilmsRow } from "@/components/home/FreeFilmsRow";
 import type { TMDBMovie, TMDBTVShow } from "@/types/tmdb";
 
 export const revalidate = 3600;
@@ -42,6 +43,7 @@ export default async function HomePage() {
       <HeroBanner />
       <TopBar />
       <ContinueWatching />
+      <FreeFilmsRow />
 
       <section className="px-10 py-7">
         <div className="flex items-center justify-between mb-5">

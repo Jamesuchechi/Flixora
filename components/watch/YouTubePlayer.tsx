@@ -2,13 +2,14 @@
 
 import YouTube, { YouTubeProps } from 'react-youtube';
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw, RotateCw } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw, RotateCw, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface YouTubePlayerProps {
   videoId: string;
   title?: string;
-  onProgress?: (seconds: number) => void;
+  startTime?: number;
+  onProgress?: (seconds: number, duration: number) => void;
   onEnd?: () => void;
 }
 
@@ -22,12 +23,19 @@ interface YouTubePlayerInstance {
   getDuration: () => number;
 }
 
-export function YouTubePlayer({ videoId, title, onProgress, onEnd }: YouTubePlayerProps) {
+export function YouTubePlayer({ 
+  videoId, 
+  title, 
+  startTime = 0,
+  onProgress, 
+  onEnd 
+}: YouTubePlayerProps) {
   const [player, setPlayer] = useState<YouTubePlayerInstance | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -41,13 +49,34 @@ export function YouTubePlayer({ videoId, title, onProgress, onEnd }: YouTubePlay
       rel: 0,
       iv_load_policy: 3,
       disablekb: 1, // Disable keyboard so we can handle it
+      start: startTime, // Initial start time if iframe reloads
     },
   };
 
   const onReady = (event: { target: YouTubePlayerInstance }) => {
-    setPlayer(event.target);
-    setDuration(event.target.getDuration());
+    const playerInst = event.target;
+    setPlayer(playerInst);
+    setDuration(playerInst.getDuration());
+    
+    if (startTime > 0) {
+      playerInst.seekTo(startTime, true);
+    }
+
     setIsPlaying(true);
+    setError(null);
+  };
+
+  const onError = (event: { data: number }) => {
+    // 2: Invalid param, 100: Not found, 101/150: Not allowed to embed or country restricted
+    console.error('YouTube Player Error:', event.data);
+    if (event.data === 101 || event.data === 150) {
+      setError('This video is restricted in your region or unavailable for embedding.');
+    } else if (event.data === 100) {
+      setError('This video could not be found or has been removed.');
+    } else {
+      setError('An error occurred while trying to play this video.');
+    }
+    setIsPlaying(false);
   };
 
   const onStateChange = (event: { data: number }) => {
@@ -62,11 +91,11 @@ export function YouTubePlayer({ videoId, title, onProgress, onEnd }: YouTubePlay
     const interval = setInterval(() => {
       const time = player.getCurrentTime();
       setCurrentTime(time);
-      onProgress?.(time);
+      onProgress?.(time, duration);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [player, isPlaying, onProgress]);
+  }, [player, isPlaying, onProgress, duration]);
 
   // Handle auto-hide controls
   const handleMouseMove = () => {
@@ -100,6 +129,28 @@ export function YouTubePlayer({ videoId, title, onProgress, onEnd }: YouTubePlay
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  if (error) {
+    return (
+      <div className="w-full h-full bg-[#090514] flex flex-col items-center justify-center p-8 text-center space-y-4">
+        <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+          <AlertTriangle className="text-red-500" size={32} />
+        </div>
+        <div className="space-y-1">
+          <h4 className="text-white font-bold uppercase tracking-[2px]">Playback Restricted</h4>
+          <p className="text-white/40 text-[10px] uppercase tracking-widest max-w-[280px] leading-relaxed">
+            {error}
+          </p>
+        </div>
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[10px] font-black text-white uppercase tracking-[2px] transition-all"
+        >
+          Try Refreshing
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div 
       className="relative w-full h-full bg-black group"
@@ -111,6 +162,7 @@ export function YouTubePlayer({ videoId, title, onProgress, onEnd }: YouTubePlay
         opts={opts}
         onReady={onReady}
         onStateChange={onStateChange}
+        onError={onError}
         onEnd={onEnd}
         className="w-full h-full pointer-events-none" // Disable clicks on iframe
         iframeClassName="w-full h-full pointer-events-none"

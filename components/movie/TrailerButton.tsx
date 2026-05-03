@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { TrailerModal } from './TrailerModal';
 import { cn } from '@/lib/utils';
+import { TMDBVideo } from '@/types/tmdb';
+import { getBestTrailer } from '@/lib/video';
 
 interface TrailerButtonProps {
-  videoKey: string | null;
+  videos: TMDBVideo[];
   title: string;
   className?: string;
   variant?: 'primary' | 'secondary';
@@ -13,12 +15,15 @@ interface TrailerButtonProps {
 
 /**
  * Interactive button that handles the opening and state of the TrailerModal.
+ * Now selects the best trailer automatically.
  */
-export function TrailerButton({ videoKey, title, className, variant = 'secondary' }: TrailerButtonProps) {
+export function TrailerButton({ videos, title, className, variant = 'secondary' }: TrailerButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Don't render if no video key is provided
-  if (!videoKey) return null;
+  const bestTrailer = useMemo(() => getBestTrailer(videos), [videos]);
+
+  // Don't render if no trailer is found
+  if (!bestTrailer) return null;
 
   return (
     <>
@@ -43,7 +48,7 @@ export function TrailerButton({ videoKey, title, className, variant = 'secondary
 
       {isOpen && (
         <TrailerModal 
-          videoKey={videoKey} 
+          videos={videos} 
           title={title} 
           onClose={() => setIsOpen(false)} 
         />

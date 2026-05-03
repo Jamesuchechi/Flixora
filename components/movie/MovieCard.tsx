@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { tmdb } from '@/lib/tmdb';
 import { cn, getYear, BLUR_DATA_URL } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
+import { MovieCardTrailer } from './MovieCardTrailer';
 
 interface MovieCardProps {
   id: number;
@@ -15,14 +17,16 @@ interface MovieCardProps {
   releaseDate?: string;
   mediaType?: 'movie' | 'tv';
   rank?: number;
+  isFree?: boolean;
   className?: string;
 }
 
 export function MovieCard({
   id, title, posterPath, rating, releaseDate,
-  mediaType = 'movie', rank, className,
+  mediaType = 'movie', rank, isFree, className,
 }: MovieCardProps) {
   const router = useRouter();
+  const [isHovered, setIsHovered] = useState(false);
   const isInWatchlist   = useStore((s) => s.isInWatchlist);
   const addToWatchlist  = useStore((s) => s.addToWatchlist);
   const removeFromWatchlist = useStore((s) => s.removeFromWatchlist);
@@ -30,11 +34,15 @@ export function MovieCard({
   const href  = `/${mediaType === 'tv' ? 'series' : 'movies'}/${id}`;
 
   return (
-    <div className={cn('shrink-0 w-[140px] group cursor-pointer snap-start', className)}>
-      <Link 
-        href={href}
-        onMouseEnter={() => router.prefetch(href)}
-      >
+    <div 
+      className={cn('shrink-0 w-[140px] group cursor-pointer snap-start', className)}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        router.prefetch(href);
+      }}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <Link href={href}>
         <div className="relative w-[140px] h-[210px] rounded-xl overflow-hidden mb-2.5 transition-transform duration-200 group-hover:-translate-y-1">
           <Image
             src={tmdb.image(posterPath, 'w342')}
@@ -46,15 +54,32 @@ export function MovieCard({
             blurDataURL={BLUR_DATA_URL}
           />
 
+          {/* Hover Trailer Preview */}
+          <MovieCardTrailer 
+            key={`trailer-${id}-${isHovered}`}
+            id={id} 
+            mediaType={mediaType} 
+            isVisible={isHovered} 
+          />
+
           {/* Rank ghost number */}
           {rank && (
-            <span className="absolute top-2 left-2.5 font-bebas text-3xl leading-none text-white/10 select-none">
+            <span className="absolute top-2 left-2.5 font-bebas text-3xl leading-none text-white/10 select-none z-20">
               {rank}
             </span>
           )}
 
+          {/* Free Badge */}
+          {isFree && (
+            <div className="absolute top-2 left-2 z-20">
+              <span className="bg-[--flx-purple] text-[8px] font-bold px-1.5 py-0.5 rounded text-white uppercase tracking-tighter shadow-lg">
+                Free
+              </span>
+            </div>
+          )}
+
           {/* Hover overlay */}
-          <div className="absolute inset-0 bg-[--flx-bg]/75 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl">
+          <div className="absolute inset-0 bg-[--flx-bg]/75 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl z-20">
             <div className="w-11 h-11 rounded-full bg-[--flx-purple]/90 flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3" /></svg>
             </div>
@@ -73,7 +98,7 @@ export function MovieCard({
             }}
             aria-label={saved ? "Remove from watchlist" : "Add to watchlist"}
             className={cn(
-              'absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all',
+              'absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all z-30',
               'opacity-0 group-hover:opacity-100',
               saved
                 ? 'bg-[--flx-pink]/90 text-white'

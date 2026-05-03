@@ -7,6 +7,7 @@ import { getYear } from '@/lib/utils';
 import { CastRow } from '@/components/movie/CastRow';
 import { TrailerButton } from '@/components/movie/TrailerButton';
 import { WatchlistButton } from '@/components/movie/WatchlistButton';
+import { HeroTrailer } from '@/components/movie/HeroTrailer';
 import { SeasonSelector } from '@/components/tv/SeasonSelector';
 import { MovieRow } from '@/components/home/MovieRow';
 import { Badge } from '@/components/ui/Badge';
@@ -50,7 +51,6 @@ export default async function SeriesDetailPage({ params }: Props) {
   const credits  = creditsRaw as TMDBCredits | null;
   const cast     = (credits?.cast ?? []) as TMDBCastMember[];
   const videos   = ((videosRaw as { results?: TMDBVideo[] } | null)?.results ?? []) as TMDBVideo[];
-  const trailer  = videos.find((v) => v.type === 'Trailer' && v.site === 'YouTube') ?? videos[0] ?? null;
   const seasons  = (show.seasons ?? []) as TMDBSeason[];
   const runtime  = show.episode_run_time?.[0];
 
@@ -92,6 +92,7 @@ export default async function SeriesDetailPage({ params }: Props) {
             priority 
             sizes="100vw" 
           />
+          <HeroTrailer videos={videos} title={show.name} />
           <div className="absolute inset-0 bg-linear-to-r from-[--flx-bg] via-[--flx-bg]/65 to-transparent" />
           <div className="absolute inset-0 bg-linear-to-t from-[--flx-bg] via-transparent to-[--flx-bg]/40" />
           
@@ -180,7 +181,7 @@ export default async function SeriesDetailPage({ params }: Props) {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
                   Play S1 E1
                 </Link>
-                <TrailerButton videoKey={trailer?.key ?? null} title={show.name} />
+                <TrailerButton videos={videos} title={show.name} />
                 <WatchlistButton id={show.id} mediaType="tv" />
               </div>
             </div>

@@ -13,11 +13,11 @@ const SearchOverlay = dynamic(() => import('@/components/search/SearchOverlay').
 });
 
 const NAV_LINKS = [
-  { href: '/home',    label: 'Home' },
-  { href: '/movies',  label: 'Movies' },
-  { href: '/series',  label: 'Series' },
-  { href: '/search',  label: 'Trending' },
-  { href: '/my-list', label: 'My List' },
+  { href: '/home',     label: 'Home' },
+  { href: '/movies',   label: 'Movies' },
+  { href: '/series',   label: 'Series' },
+  { href: '/trending', label: 'Trending' },
+  { href: '/my-list',  label: 'My List' },
 ];
 
 export function Navbar() {

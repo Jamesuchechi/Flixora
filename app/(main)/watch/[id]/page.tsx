@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { TMDBVideo } from '@/types/tmdb';
 import type { Metadata } from 'next';
 import { tmdb } from '@/lib/tmdb';
+import { isFreeFilm } from '@/lib/supabase/actions/free-films';
 import { WatchlistButton } from '@/components/movie/WatchlistButton';
 import { MovieRow } from '@/components/home/MovieRow';
 import { ExternalRatings } from '@/components/movie/ExternalRatings';
@@ -41,6 +42,10 @@ export default async function WatchPage({ params, searchParams }: Props) {
   ]);
 
   const isMovie = !!movie && !show?.name;
+  
+  // Refetch free film ID with correct media type if needed
+  const actualFreeFilmId = await isFreeFilm(mediaId, isMovie ? 'movie' : 'tv');
+
   // Identify the best trailer key
   const trailerResults = videos.results as TMDBVideo[];
   const trailer = trailerResults.find(v => v.type === 'Trailer' && v.site === 'YouTube') || trailerResults[0];
@@ -73,6 +78,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
             season={Number(s)}
             episode={Number(e)}
             youtubeId={trailer?.key}
+            fullFilmYoutubeId={actualFreeFilmId || undefined}
             nextEpisodeUrl={nextEpisodeUrl}
           />
         </div>

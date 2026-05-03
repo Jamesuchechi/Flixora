@@ -6,6 +6,8 @@ import { Play, SkipForward, Tv, Server, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { YouTubePlayer } from './YouTubePlayer';
 import { motion, AnimatePresence } from 'framer-motion';
+import { updateWatchProgress } from '@/lib/supabase/actions/progress';
+import { ReportButton } from './ReportButton';
 
 interface VideoPlayerProps {
   tmdbId: number;
@@ -41,6 +43,16 @@ export function VideoPlayer({
   const [activeServer, setActiveServer] = useState(SERVERS[0]);
   const [showServerList, setShowServerList] = useState(false);
   const [showAdGuard, setShowAdGuard] = useState(mode === 'player');
+
+  const handleProgress = async (seconds: number, duration: number) => {
+    if (duration > 0) {
+      const percent = Math.floor((seconds / duration) * 100);
+      // Sync every 5% to avoid spamming
+      if (percent % 5 === 0) {
+        await updateWatchProgress(tmdbId, mediaType, percent, season, episode);
+      }
+    }
+  };
 
   useEffect(() => {
     if (showAdGuard) {
@@ -117,7 +129,12 @@ export function VideoPlayer({
           <YouTubePlayer 
             videoId={fullFilmYoutubeId} 
             title={title} 
+            startTime={typeof window !== 'undefined' ? Number(new URLSearchParams(window.location.search).get('t')) || 0 : 0}
+            onProgress={(s, d) => handleProgress(s, d)}
           />
+          <div className="absolute bottom-6 left-6 z-20">
+            <ReportButton videoId={fullFilmYoutubeId} title={title} />
+          </div>
         </div>
       ) : (
         /* Trailer Mode (YouTube) */

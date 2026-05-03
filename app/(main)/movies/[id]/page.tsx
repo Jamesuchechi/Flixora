@@ -10,6 +10,7 @@ import { WatchlistButton } from '@/components/movie/WatchlistButton';
 import { MovieRow } from '@/components/home/MovieRow';
 import { Badge } from '@/components/ui/Badge';
 import { getWatchProgress } from '@/lib/supabase/actions/progress';
+import { HeroTrailer } from '@/components/movie/HeroTrailer';
 import type { TMDBCredits, TMDBVideo, TMDBCastMember, TMDBCrewMember } from '@/types/tmdb';
 
 interface Props {
@@ -52,7 +53,6 @@ export default async function MovieDetailPage({ params }: Props) {
   const crew     = (credits?.crew ?? []) as TMDBCrewMember[];
   const director = crew.find((c) => c.job === 'Director');
   const videos   = ((videosRaw as { results?: TMDBVideo[] } | null)?.results ?? []) as TMDBVideo[];
-  const trailer  = videos.find((v) => v.type === 'Trailer' && v.site === 'YouTube') ?? videos[0] ?? null;
 
   const backdropUrl = tmdb.image(movie.backdrop_path, 'original');
   const posterUrl   = tmdb.image(movie.poster_path, 'w500');
@@ -84,6 +84,7 @@ export default async function MovieDetailPage({ params }: Props) {
       <section className="relative h-[75vh] min-h-[600px] w-full overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image src={backdropUrl} alt={movie.title} fill className="object-cover object-top opacity-40 scale-105 animate-aurora" priority sizes="100vw" />
+          <HeroTrailer videos={videos} title={movie.title} />
           <div className="absolute inset-0 bg-linear-to-r from-[--flx-bg] via-[--flx-bg]/60 to-transparent" />
           <div className="absolute inset-0 bg-linear-to-t from-[--flx-bg] via-transparent to-[--flx-bg]/40" />
         </div>
@@ -133,7 +134,7 @@ export default async function MovieDetailPage({ params }: Props) {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
                   {progress && progress.progress > 0 ? `Resume at ${progress.progress}%` : 'Play Now'}
                 </Link>
-                <TrailerButton videoKey={trailer?.key ?? null} title={movie.title} />
+                <TrailerButton videos={videos} title={movie.title} />
                 <WatchlistButton id={movie.id} mediaType="movie" />
               </div>
             </div>
