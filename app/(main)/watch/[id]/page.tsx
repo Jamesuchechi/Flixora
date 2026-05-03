@@ -55,7 +55,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
   
   // Parallel fetch for remaining data
   const [similar, externalIds, videos] = await Promise.all([
-    isMovie ? tmdb.movies.similar(mediaId, { silent: true }).catch(() => ({ results: [] })) : tmdb.tv.similar(mediaId, { silent: true }).catch(() => ({ results: [] })),
+    isMovie ? tmdb.movies.similar(mediaId, 1, { silent: true }).catch(() => ({ results: [] })) : tmdb.tv.similar(mediaId, 1, { silent: true }).catch(() => ({ results: [] })),
     isMovie ? tmdb.movies.externalIds(mediaId, { silent: true }).catch(() => null) : tmdb.tv.externalIds(mediaId, { silent: true }).catch(() => null),
     isMovie ? tmdb.movies.videos(mediaId, { silent: true }).catch(() => ({ results: [] })) : tmdb.tv.videos(mediaId, { silent: true }).catch(() => ({ results: [] })),
   ]);
