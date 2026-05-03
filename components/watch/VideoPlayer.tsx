@@ -27,6 +27,7 @@ interface VideoPlayerProps {
   fullFilmYoutubeId?: string; // For verified free full films
   nextEpisodeUrl?: string;
   overview?: string;
+  imdbId?: string;
 }
 const SERVERS = [
   { id: 'vidsrc_to', name: 'Server 1 (Clean)', url: 'https://vidsrc.to/embed/' },
@@ -43,7 +44,8 @@ export function VideoPlayer({
   youtubeId,
   fullFilmYoutubeId,
   nextEpisodeUrl,
-  overview = ""
+  overview = "",
+  imdbId
 }: VideoPlayerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -168,11 +170,12 @@ export function VideoPlayer({
   const getStreamUrl = () => {
     const base = activeServer.url;
     const type = mediaType === 'tv' ? 'tv' : 'movie';
+    const identifier = imdbId || tmdbId;
     
     if (mediaType === 'tv') {
-      return `${base}${type}/${tmdbId}/${season}/${episode}`;
+      return `${base}${type}/${identifier}/${season}/${episode}`;
     }
-    return `${base}${type}/${tmdbId}`;
+    return `${base}${type}/${identifier}`;
   };
 
   return (
@@ -182,7 +185,7 @@ export function VideoPlayer({
       {currentMode === 'player' ? (
         <div className="w-full h-full relative">
           <SmartGuard 
-            isPlaying={!showAdGuard} 
+            isShieldActive={showAdGuard} 
             onRefresh={handleRefresh}
           />
           <iframe
@@ -339,7 +342,7 @@ export function VideoPlayer({
         <button 
           onClick={() => router.push(nextEpisodeUrl)}
           aria-label={`Watch next episode: Season ${season} Episode ${Number(episode || 0) + 1}`}
-          className="absolute bottom-8 right-8 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-all active:scale-95 group/next shadow-2xl opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 duration-500"
+          className="absolute top-24 right-8 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 transition-all active:scale-95 group/next shadow-2xl opacity-0 group-hover:opacity-100 -translate-y-4 group-hover:translate-y-0 duration-500"
         >
           <div className="text-right">
             <p className="text-[9px] font-bold text-white/40 uppercase tracking-[1px]">Next Up</p>

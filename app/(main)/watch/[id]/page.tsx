@@ -89,6 +89,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
             fullFilmYoutubeId={actualFreeFilmId || undefined}
             nextEpisodeUrl={nextEpisodeUrl}
             overview={movie?.overview ?? show?.overview}
+            imdbId={imdbId}
           />
         </div>
       </section>

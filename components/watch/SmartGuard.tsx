@@ -5,7 +5,7 @@ import { Shield, ShieldAlert, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SmartGuardProps {
-  isPlaying: boolean;
+  isShieldActive: boolean;
   onRefresh: () => void;
   className?: string;
 }
@@ -14,29 +14,34 @@ interface SmartGuardProps {
  * SmartGuard Stealth Ad-Shield
  * Protects users from malicious pop-ups while maintaining provider compliance.
  */
-export function SmartGuard({ isPlaying, onRefresh, className }: SmartGuardProps) {
+export function SmartGuard({ isShieldActive, onRefresh, className }: SmartGuardProps) {
   const [showStatus, setShowStatus] = useState(false);
 
-  // Briefly show shield status when playback starts
+  // Briefly show shield status when shield becomes active
   useEffect(() => {
-    if (isPlaying) {
+    if (isShieldActive) {
+      // Defer state update to next frame to avoid "cascading renders" error
       const frame = requestAnimationFrame(() => setShowStatus(true));
       const timer = setTimeout(() => setShowStatus(false), 3000);
       return () => {
         cancelAnimationFrame(frame);
         clearTimeout(timer);
       };
+    } else {
+      // Also defer resetting to avoid synchronous update error
+      const frame = requestAnimationFrame(() => setShowStatus(false));
+      return () => cancelAnimationFrame(frame);
     }
-  }, [isPlaying]);
+  }, [isShieldActive]);
 
   return (
     <div className={cn("absolute inset-0 pointer-events-none z-10", className)}>
       {/* 
         THE SHIELD LAYER 
-        When playing, this transparent layer catches "accidental" clicks that 
+        When shield is active, this transparent layer catches "accidental" clicks that 
         3rd party providers use to trigger pop-ups.
       */}
-      {isPlaying && (
+      {isShieldActive && (
         <div className="absolute inset-0 pointer-events-auto bg-transparent cursor-default" />
       )}
 
@@ -61,12 +66,12 @@ export function SmartGuard({ isPlaying, onRefresh, className }: SmartGuardProps)
       </div>
 
       {/* Compliance Warning (Only if playback is clearly broken) */}
-      {!isPlaying && (
+      {!isShieldActive && (
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-2 text-[9px] font-bold text-white/20 uppercase tracking-widest">
            <ShieldAlert size={10} />
            <span>Stealth Compliance Mode • Ads permitted on pause</span>
-        </div>
-      )}
+         </div>
+       )}
     </div>
   );
 }
