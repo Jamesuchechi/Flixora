@@ -17,6 +17,7 @@ export interface UserPreferences {
   compactMode: boolean;
   accentColor: string;
   soundEffects: boolean;
+  reactionVisibility: 'all' | 'friends' | 'hide';
 }
 
 interface AIInsights {
@@ -73,6 +74,7 @@ export const useStore = create<FlixoraStore>()(
         compactMode: false,
         accentColor: '#8b5cf6',
         soundEffects: false,
+        reactionVisibility: 'all',
       },
       setPreference: (key, value) =>
         set((s) => ({

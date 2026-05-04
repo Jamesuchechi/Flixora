@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { Database } from '@/types/supabase';
+import { createActivityEvent } from './social';
 
 type WatchlistItem = Database['public']['Tables']['watchlist']['Row'];
 
@@ -63,6 +64,12 @@ export async function toggleWatchlist(tmdbId: number, mediaType: 'movie' | 'tv')
       });
 
     if (error) return { error: error.message };
+
+    // Log Activity
+    await createActivityEvent('added_to_watchlist', {
+      tmdb_id: tmdbId,
+      media_type: mediaType
+    });
   }
 
   revalidatePath('/profile');

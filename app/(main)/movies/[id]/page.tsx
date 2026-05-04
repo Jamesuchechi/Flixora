@@ -13,6 +13,8 @@ import { LandscapeCard } from '@/components/movie/LandscapeCard';
 import { getWatchProgress } from '@/lib/supabase/actions/progress';
 import { HeroTrailer } from '@/components/movie/HeroTrailer';
 import { TrailerInsights } from '@/components/movie/TrailerInsights';
+import { StartPartyButton } from '@/components/social/StartPartyButton';
+import { ReactionHighlights } from '@/components/social/ReactionHighlights';
 import type { TMDBCredits, TMDBVideo, TMDBCastMember, TMDBCrewMember } from '@/types/tmdb';
 
 interface Props {
@@ -177,6 +179,7 @@ export default async function MovieDetailPage({ params, searchParams }: Props) {
                   {progress && progress.progress > 0 ? `Resume at ${progress.progress}%` : 'Play Title'}
                 </Link>
                 <TrailerButton videos={videos} title={movie.title} />
+                <StartPartyButton tmdbId={movie.id} mediaType="movie" />
                 <WatchlistButton id={movie.id} mediaType="movie" />
               </div>
             </div>
@@ -238,6 +241,8 @@ export default async function MovieDetailPage({ params, searchParams }: Props) {
                   </Link>
                 )}
               </div>
+
+              <ReactionHighlights tmdbId={movie.id} />
             </aside>
           </div>
         </div>

@@ -90,3 +90,34 @@ export async function deleteNotification(id: string) {
   revalidatePath('/notifications');
   return { success: true };
 }
+
+/**
+ * Create a new notification for a user.
+ */
+export async function createNotification(
+  userId: string,
+  type: 'release' | 'watchlist' | 'system' | 'social',
+  title: string,
+  content: string,
+  link?: string
+) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('notifications')
+    .insert({
+      user_id: userId,
+      type,
+      title,
+      content,
+      link,
+      is_read: false,
+    });
+
+  if (error) {
+    console.error('Failed to create notification:', error);
+    return { success: false };
+  }
+
+  return { success: true };
+}

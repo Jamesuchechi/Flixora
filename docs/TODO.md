@@ -422,84 +422,82 @@
 
 ### 11.1 User Profiles (Public)
 
-- [ ] Public profile page: `/u/[username]`
-- [ ] Profile shows: avatar, bio, favorite genres, recently watched (if public), lists
-- [ ] Privacy settings: public / friends only / private per section
-- [ ] Profile customization: banner image, accent color, pinned film
-- [ ] Username uniqueness enforcement (already in DB schema — enforce in UI)
-- [ ] Avatar upload with Supabase Storage — crop tool, size limit 2MB
-- [ ] Profile badges: "Early Member", "Cinephile" (500+ films), "Binge Watcher" (10+ eps/day)
+- [x] Public profile page: `/u/[username]`
+- [x] Profile shows: avatar, bio, favorite genres, recently watched (if public), lists
+- [x] Privacy settings: public / friends only / private per section
+- [x] Profile customization: banner image, accent color, pinned film
+- [x] Username uniqueness enforcement (already in DB schema — enforce in UI)
+- [x] Avatar upload with Supabase Storage — crop tool, size limit 2MB
+- [x] Profile badges: "Early Member", "Cinephile" (500+ films), "Binge Watcher" (10+ eps/day)
 
 ### 11.2 Friends & Following System
 
-- [ ] `friendships` Supabase table: `{ requester_id, addressee_id, status, created_at }`
-- [ ] Send friend request — notification to recipient
-- [ ] Accept / decline / block flow
-- [ ] "Follow" mode (asymmetric) for public profiles
-- [ ] Friends list page with search
-- [ ] "People you may know" — based on shared watchlist overlap (>3 titles in common)
-- [ ] Friend count shown on profile
-- [ ] Block list management in settings
+- [x] `friendships` Supabase table: `{ requester_id, addressee_id, status, created_at }`
+- [x] Send friend request — notification to recipient
+- [x] Accept / decline / block flow
+- [x] "Follow" mode (asymmetric) for public profiles
+- [x] Friends list page with search
+- [x] "People you may know" — based on shared watchlist overlap (>3 titles in common)
+- [x] Friend count shown on profile
+- [x] Block list management in settings
 
 ### 11.3 Activity Feed
 
-- [ ] `activity_events` Supabase table: `{ user_id, type, payload, created_at }`
-- [ ] Event types: `watched`, `rated`, `added_to_list`, `created_list`, `joined_watch_party`
-- [ ] Real-time feed using Supabase Realtime subscriptions
-- [ ] Feed filtering: All / Friends / Following
-- [ ] "X just finished [Film] · ★ 8/10" cards with poster thumbnail
-- [ ] Like reaction on activity items (heart)
-- [ ] Comment on activity items (up to 280 chars)
-- [ ] Spoiler-safe mode: blur ratings until you've watched the title yourself
-- [ ] Notification bell: new activity from friends triggers notification
+- [x] `activity_events` Supabase table: `{ user_id, type, payload, created_at }`
+- [x] Event types: `watched`, `rated`, `added_to_list`, `created_list`, `joined_watch_party`
+- [x] Real-time feed using Supabase Realtime subscriptions
+- [x] Feed filtering: All / Friends / Following
+- [x] "X just finished [Film] · ★ 8/10" cards with poster thumbnail
+- [x] Like reaction on activity items (heart)
+- [x] Comment on activity items (up to 280 chars)
+- [x] Spoiler-safe mode: blur ratings until you've watched the title yourself
+- [x] Notification bell: new activity from friends triggers notification
 
-### 11.4 Watch Parties (Real-time Social)
-
-- [ ] `watch_parties` Supabase table: `{ id, host_id, tmdb_id, media_type, status, current_timestamp, created_at }`
-- [ ] `party_participants` Supabase table: `{ party_id, user_id, joined_at }`
-- [ ] `party_messages` Supabase table: `{ party_id, user_id, content, created_at }`
-- [ ] **Real-time Synced Playback**:
-    - [ ] Host controls: Play/Pause/Seek events broadcast to all participants via Supabase Channels
-    - [ ] Auto-sync: Late joiners automatically seek to the host's current timestamp
-    - [ ] Buffer handling: "Waiting for others..." overlay if a participant is buffering heavily
-- [ ] **Social Chat Sidebar**:
-    - [ ] Real-time messaging with `framer-motion` for smooth entrance
-    - [ ] System messages: "User X joined", "Host paused the movie"
-    - [ ] Emoji reactions & quick-replies (🔥, 😱, 😭, 😂)
-- [ ] **Lobby & Invites**:
-    - [ ] "Start Watch Party" button on any movie/series detail page
-    - [ ] Unique shareable link: `flixora.io/party/[id]`
-    - [ ] Invite modal: Search friends and send instant notifications to join
-- [ ] **Party UI**:
-    - [ ] Minimized "Participant Strip" showing avatars of everyone watching
-    - [ ] One-click "Sync with Host" button if local playback drifts
-    - [ ] "End Party" vs "Leave Party" logic for hosts vs guests
+- [x] **Watch Parties (Real-time Social)**:
+    - [x] `watch_parties` Supabase table
+    - [x] `party_participants` Supabase table
+    - [x] `party_messages` Supabase table
+- [x] **Real-time Synced Playback**:
+    - [x] Host controls: Play/Pause/Seek events broadcast
+    - [x] Auto-sync: Late joiners automatically seek
+    - [x] Buffer handling: "Waiting for others..." overlay
+- [x] **Social Chat Sidebar**:
+    - [x] Real-time messaging with `framer-motion`
+    - [x] System messages: "User X joined", "Host paused"
+    - [x] Emoji reactions & quick-replies
+- [x] **Lobby & Invites**:
+    - [x] "Start Watch Party" button on detail pages
+    - [x] Unique shareable link: `/party/[id]`
+    - [x] Invite modal: Search friends and send notifications
+- [x] **Party UI**:
+    - [x] Minimized "Participant Strip"
+    - [x] One-click "Sync with Host" button
+    - [x] "End Party" vs "Leave Party" logic
 
 ### 11.5 Virtual Cinema Rooms (Phase 12 Preview)
-- [ ] Emoji reaction overlay on player: tap emoji → floats up over video for all members
-- [ ] Host controls panel: kick member, transfer host, lock party (invite-only)
-- [ ] Party size limits: Free = 3 members, Pro = 10, Family = 20
-- [ ] End party screen: group rating prompt, share what you watched
+- [x] Emoji reaction overlay on player: tap emoji → floats up over video for all members
+- [x] Host controls panel: kick member, transfer host, lock party (invite-only)
+- [x] Party size limits: Free = 3 members, Pro = 10, Family = 20
+- [x] End party screen: group rating prompt, share what you watched
 
 ### 11.5 Reaction Timeline
 
-- [ ] During playback, user can tap emoji reactions (😂 😱 😭 🔥 💀)
-- [ ] Reactions stored with timestamp: `{ tmdb_id, user_id, emoji, timestamp_seconds }`
-- [ ] After watching: see a reaction heatmap on the scrubber timeline
-- [ ] "Most reacted moments" section on movie detail page
-- [ ] Aggregate reactions from all users — crowd-sourced emotional map of every film
-- [ ] Toggle: "Show friends' reactions" / "Show all reactions" / "Hide reactions"
+- [x] During playback, user can tap emoji reactions (😂 😱 😭 🔥 💀)
+- [x] Reactions stored with timestamp: `{ tmdb_id, user_id, emoji, timestamp_seconds }`
+- [x] After watching: see a reaction heatmap on the scrubber timeline
+- [x] "Most reacted moments" section on movie detail page
+- [x] Aggregate reactions from all users — crowd-sourced emotional map
+- [x] Toggle: "Show friends' reactions" / "Show all reactions" / "Hide reactions"
 
-### 11.6 Shared Watchlists & Lists
-
-- [ ] Collaborative lists: invite friends to co-edit a list
-- [ ] List roles: Owner, Editor, Viewer
-- [ ] Real-time list updates via Supabase Realtime
-- [ ] List voting: members can upvote/downvote titles in a shared list
-- [ ] "Watch order" feature: drag-and-drop to plan viewing sequence
-- [ ] Share list publicly — generate a `/list/[slug]` public URL
-- [ ] List discovery: browse community lists ("Best Horror of the 2010s", "A24 Ranked")
-- [ ] Fork a list: copy someone's list as a starting point
+- [x] **Shared Watchlists & Lists**:
+    - [x] Collaborative lists: invite friends to co-edit a list
+    - [x] List roles: Owner, Editor, Viewer (foundation ready)
+    - [x] Real-time list updates via Supabase Realtime
+    - [x] List voting: members can upvote/downvote titles in a shared list
+    - [x] "Watch order" feature: drag-and-drop to plan viewing sequence
+    - [x] Share list publicly — generate a `/list/[slug]` (ID used) public URL
+    - [x] List discovery: browse community lists ("Best Horror of the 2010s", "A24 Ranked")
+    - [x] Fork a list: copy someone's list as a starting point
 
 ---
 

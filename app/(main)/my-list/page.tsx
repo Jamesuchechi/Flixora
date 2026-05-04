@@ -10,28 +10,46 @@ import { tmdb } from '@/lib/tmdb';
 import { MovieCardSkeleton } from '@/components/ui/Skeleton';
 import type { TMDBMovie, TMDBTVShow } from '@/types/tmdb';
 
+import { CustomListsView } from '@/components/social/CustomListsView';
+
 export default function MyListPage() {
   const watchlist = useStore((s) => s.watchlist);
+  const [activeTab, setActiveTab] = useState<'watchlist' | 'custom'>('watchlist');
 
   return (
     <div className="min-h-screen bg-[--flx-bg] pb-32">
       {/* Header Area */}
       <div className="relative pt-24 pb-12 px-10 border-b border-white/5 bg-linear-to-b from-white/2 to-transparent">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3 text-[--flx-cyan] mb-2">
-               <Heart size={18} fill="currentColor" />
-               <span className="text-[10px] font-black uppercase tracking-[4px]">Your Collection</span>
+        <div className="max-w-7xl mx-auto flex items-end justify-between">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3 text-[--flx-cyan] mb-2">
+                 <Heart size={18} fill="currentColor" />
+                 <span className="text-[10px] font-black uppercase tracking-[4px]">Your Collection</span>
+              </div>
+              <h1 className="font-bebas text-6xl tracking-widest text-[--flx-text-1]">My Library</h1>
             </div>
-            <h1 className="font-bebas text-6xl tracking-widest text-[--flx-text-1]">My List</h1>
-            <p className="text-xs font-bold text-[--flx-text-3] uppercase tracking-[3px]">
-              {watchlist.length} items saved to your cinematic library
-            </p>
+
+            {/* Tabs */}
+            <div className="flex items-center gap-1 p-1 bg-white/5 rounded-2xl w-fit">
+               <button 
+                 onClick={() => setActiveTab('watchlist')}
+                 className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'watchlist' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
+               >
+                 Watchlist ({watchlist.length})
+               </button>
+               <button 
+                 onClick={() => setActiveTab('custom')}
+                 className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'custom' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
+               >
+                 Custom Lists
+               </button>
+            </div>
           </div>
           
           <Link 
             href="/home" 
-            className="hidden md:flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[--flx-text-3] hover:text-[--flx-text-1] transition-colors"
+            className="hidden md:flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[--flx-text-3] hover:text-[--flx-text-1] transition-colors pb-1"
           >
             <ChevronLeft size={14} />
             Back to Browse
@@ -41,23 +59,27 @@ export default function MyListPage() {
 
       {/* Grid Area */}
       <div className="max-w-7xl mx-auto px-10 py-12">
-        {watchlist.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-40 text-center space-y-6">
-            <div className="w-24 h-24 rounded-[40px] bg-white/5 border border-white/10 flex items-center justify-center text-white/20">
-               <Heart size={40} />
+        {activeTab === 'watchlist' ? (
+          watchlist.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-40 text-center space-y-6">
+              <div className="w-24 h-24 rounded-[40px] bg-white/5 border border-white/10 flex items-center justify-center text-white/20">
+                 <Heart size={40} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-3xl font-bebas tracking-wider text-[--flx-text-1] uppercase">Your watchlist is empty</h3>
+                <p className="text-sm text-[--flx-text-3] max-w-xs mx-auto leading-relaxed">
+                  Start adding your favorite movies and series to build your perfect library.
+                </p>
+              </div>
+              <Link href="/home" className="px-10 py-4 bg-white text-black font-black text-[11px] uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all">
+                Start Browsing
+              </Link>
             </div>
-            <div className="space-y-2">
-              <h3 className="text-3xl font-bebas tracking-wider text-[--flx-text-1] uppercase">Your list is empty</h3>
-              <p className="text-sm text-[--flx-text-3] max-w-xs mx-auto leading-relaxed">
-                Start adding your favorite movies and series to build your perfect library.
-              </p>
-            </div>
-            <Link href="/home" className="px-10 py-4 bg-white text-black font-black text-[11px] uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all">
-              Start Browsing
-            </Link>
-          </div>
+          ) : (
+            <WatchlistGrid ids={watchlist} />
+          )
         ) : (
-          <WatchlistGrid ids={watchlist} />
+          <CustomListsView />
         )}
       </div>
     </div>

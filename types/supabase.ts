@@ -1,3 +1,11 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
 export interface Database {
   public: {
     Tables: {
@@ -8,6 +16,12 @@ export interface Database {
           avatar_url: string | null;
           cover_url: string | null;
           bio: string | null;
+          pinned_media_id: number | null;
+          pinned_media_type: 'movie' | 'tv' | null;
+          favorite_genres: number[];
+          privacy_watchlist: 'public' | 'friends' | 'private';
+          privacy_activity: 'public' | 'friends' | 'private';
+          privacy_lists: 'public' | 'friends' | 'private';
           created_at: string;
         };
         Insert: {
@@ -16,6 +30,12 @@ export interface Database {
           avatar_url?: string | null;
           cover_url?: string | null;
           bio?: string | null;
+          pinned_media_id?: number | null;
+          pinned_media_type?: 'movie' | 'tv' | null;
+          favorite_genres?: number[];
+          privacy_watchlist?: 'public' | 'friends' | 'private';
+          privacy_activity?: 'public' | 'friends' | 'private';
+          privacy_lists?: 'public' | 'friends' | 'private';
           created_at?: string;
         };
         Update: {
@@ -23,6 +43,213 @@ export interface Database {
           avatar_url?: string | null;
           cover_url?: string | null;
           bio?: string | null;
+          pinned_media_id?: number | null;
+          pinned_media_type?: 'movie' | 'tv' | null;
+          favorite_genres?: number[];
+          privacy_watchlist?: 'public' | 'friends' | 'private';
+          privacy_activity?: 'public' | 'friends' | 'private';
+          privacy_lists?: 'public' | 'friends' | 'private';
+        };
+      };
+      friendships: {
+        Row: {
+          id: string;
+          requester_id: string;
+          addressee_id: string;
+          status: 'pending' | 'accepted' | 'blocked';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          requester_id: string;
+          addressee_id: string;
+          status?: 'pending' | 'accepted' | 'blocked';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: 'pending' | 'accepted' | 'blocked';
+          updated_at?: string;
+        };
+      };
+      activity_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          payload: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: string;
+          payload?: Json;
+          created_at?: string;
+        };
+        Update: never;
+      };
+      activity_likes: {
+        Row: {
+          activity_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          activity_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: never;
+      };
+      activity_comments: {
+        Row: {
+          id: string;
+          activity_id: string;
+          user_id: string;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          activity_id: string;
+          user_id: string;
+          content: string;
+          created_at?: string;
+        };
+        Update: {
+          content?: string;
+        };
+      };
+      watch_parties: {
+        Row: {
+          id: string;
+          host_id: string;
+          tmdb_id: number;
+          media_type: 'movie' | 'tv';
+          status: string;
+          playback_timestamp: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          host_id: string;
+          tmdb_id: number;
+          media_type: 'movie' | 'tv';
+          status?: string;
+          playback_timestamp?: number;
+          created_at?: string;
+        };
+        Update: {
+          status?: string;
+          playback_timestamp?: number;
+        };
+      };
+      party_participants: {
+        Row: {
+          party_id: string;
+          user_id: string;
+          joined_at: string;
+        };
+        Insert: {
+          party_id: string;
+          user_id: string;
+          joined_at?: string;
+        };
+        Update: never;
+      };
+      party_messages: {
+        Row: {
+          id: string;
+          party_id: string;
+          user_id: string | null;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          party_id: string;
+          user_id?: string | null;
+          content: string;
+          created_at?: string;
+        };
+        Update: never;
+      };
+      reactions: {
+        Row: {
+          id: string;
+          tmdb_id: number;
+          user_id: string;
+          emoji: string;
+          timestamp_seconds: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tmdb_id: number;
+          user_id: string;
+          emoji: string;
+          timestamp_seconds: number;
+          created_at?: string;
+        };
+        Update: never;
+      };
+      custom_lists: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string | null;
+          is_public: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description?: string | null;
+          is_public?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          description?: string | null;
+          is_public?: boolean;
+        };
+      };
+      list_items: {
+        Row: {
+          list_id: string;
+          tmdb_id: number;
+          media_type: 'movie' | 'tv';
+          added_at: string;
+          position: number;
+        };
+        Insert: {
+          list_id: string;
+          tmdb_id: number;
+          media_type: 'movie' | 'tv';
+          added_at?: string;
+          position?: number;
+        };
+        Update: {
+          position?: number;
+        };
+      };
+      list_collaborators: {
+        Row: {
+          list_id: string;
+          user_id: string;
+          role: string;
+        };
+        Insert: {
+          list_id: string;
+          user_id: string;
+          role?: string;
+        };
+        Update: {
+          role?: string;
         };
       };
       watchlist: {
@@ -226,3 +453,12 @@ export type AIMetadata     = Database['public']['Tables']['ai_metadata']['Row'];
 export type UserPreference = Database['public']['Tables']['user_preferences']['Row'];
 export type TrailerCache   = Database['public']['Tables']['trailer_cache']['Row'];
 export type FreeFilm       = Database['public']['Tables']['free_films']['Row'];
+export type Friendship     = Database['public']['Tables']['friendships']['Row'];
+export type ActivityEvent  = Database['public']['Tables']['activity_events']['Row'];
+export type WatchParty     = Database['public']['Tables']['watch_parties']['Row'];
+export type PartyParticipant = Database['public']['Tables']['party_participants']['Row'];
+export type PartyMessage   = Database['public']['Tables']['party_messages']['Row'];
+export type Reaction       = Database['public']['Tables']['reactions']['Row'];
+export type CustomList     = Database['public']['Tables']['custom_lists']['Row'];
+export type ListItem       = Database['public']['Tables']['list_items']['Row'];
+export type ListCollaborator = Database['public']['Tables']['list_collaborators']['Row'];

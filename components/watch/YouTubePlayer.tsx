@@ -10,6 +10,7 @@ interface YouTubePlayerProps {
   title?: string;
   startTime?: number;
   onProgress?: (seconds: number, duration: number) => void;
+  onBuffering?: (isBuffering: boolean) => void;
   onEnd?: () => void;
 }
 
@@ -32,6 +33,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
   title, 
   startTime = 0,
   onProgress, 
+  onBuffering,
   onEnd 
 }, ref) => {
   const [player, setPlayer] = useState<YouTubePlayerInstance | null>(null);
@@ -90,8 +92,9 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
   };
 
   const onStateChange = (event: { data: number }) => {
-    // 1: Playing, 2: Paused
+    // 1: Playing, 2: Paused, 3: Buffering
     setIsPlaying(event.data === 1);
+    onBuffering?.(event.data === 3);
   };
 
   // Progress tracking

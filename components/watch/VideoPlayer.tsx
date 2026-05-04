@@ -12,14 +12,20 @@ import { getSkipSegments, SkipSegment } from '@/lib/ai/skip-detection';
 import { SkipPrompt } from './SkipPrompt';
 import { updatePlaybackPreference, getUserPreferences, logSkipEvent } from '@/lib/supabase/actions/preferences';
 import { findFullMovieOnYouTube } from '@/lib/supabase/actions/matcher';
-import { Loader2, Search } from 'lucide-react';
+import { ReactionOverlay } from './ReactionOverlay';
+import { ReactionHeatmap } from './ReactionHeatmap';
+import { ReactionToggle } from './ReactionToggle';
+import { Loader2, Search, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createClient } from '@/lib/supabase/client';
+import { EndPartyScreen } from '../social/EndPartyScreen';
 
 interface VideoPlayerProps {
   tmdbId: number;
   mediaType: 'movie' | 'tv';
   title: string;
   backdrop: string;
+  posterPath?: string;
   season?: number;
   episode?: number;
   youtubeId?: string;
@@ -30,6 +36,8 @@ interface VideoPlayerProps {
   releaseDate?: string;
   status?: string;
   rating?: number;
+  partyId?: string;
+  isHost?: boolean;
 }
 
 const SERVERS = [
@@ -71,6 +79,8 @@ export function VideoPlayer({
   tmdbId,
   mediaType,
   title,
+  backdrop,
+  posterPath,
   season,
   episode,
   youtubeId,
@@ -80,7 +90,9 @@ export function VideoPlayer({
   imdbId,
   releaseDate,
   status,
-  rating = 0
+  rating = 0,
+  partyId,
+  isHost = false
 }: VideoPlayerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -102,11 +114,14 @@ export function VideoPlayer({
   const [skipSegments, setSkipSegments] = useState<SkipSegment[]>([]);
   const [autoSkipEnabled, setAutoSkipEnabled] = useState(false);
   const [isSearchingAI, setIsSearchingAI] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [bufferingParticipants, setBufferingParticipants] = useState<string[]>([]);
   const [dynamicFreeId, setDynamicFreeId] = useState<string | null>(null);
   const [forceStream, setForceStream] = useState(false);
   const [isCinemaMode, setIsCinemaMode] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(true);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [isPartyEnded, setIsPartyEnded] = useState(false);
   const youtubeRef = useRef<YouTubePlayerRef>(null);
 
   // Listen for ready signals from 3rd-party iframes
@@ -185,6 +200,93 @@ export function VideoPlayer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // ── WATCH PARTY SYNC LOGIC ──
+  useEffect(() => {
+    if (!partyId) return;
+
+    const supabase = createClient();
+    const channel = supabase.channel(`party_sync:${partyId}`, {
+      config: {
+        broadcast: { self: false }
+      }
+    });
+
+    channel
+      .on('broadcast', { event: 'sync' }, ({ payload }) => {
+        if (isHost) return; // Host ignores sync signals
+
+        const { timestamp, status, mode: remoteMode } = payload;
+        
+        // Sync Mode
+        if (remoteMode !== mode) {
+          setMode(remoteMode);
+        }
+
+        // Sync Time
+        if (Math.abs(currentTime - timestamp) > 3) {
+          if (youtubeRef.current) {
+            youtubeRef.current.seekTo(timestamp);
+          }
+        }
+
+        // Sync Status (Placeholder: we'd need play/pause control on YouTube/Iframe)
+        console.log('Syncing to:', timestamp, status);
+      })
+      .on('broadcast', { event: 'ended' }, () => {
+        setIsPartyEnded(true);
+      })
+      .on('broadcast', { event: 'buffering' }, ({ payload }) => {
+        const { isBuffering: remoteBuffering, username } = payload;
+        setBufferingParticipants(prev => {
+          if (remoteBuffering) return [...new Set([...prev, username])];
+          return prev.filter(name => name !== username);
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [partyId, isHost, mode, currentTime]);
+
+  // Host broadcast
+  useEffect(() => {
+    if (!partyId || !isHost || !isPlayerReady) return;
+
+    const supabase = createClient();
+    const channel = supabase.channel(`party_sync:${partyId}`);
+
+    const interval = setInterval(() => {
+      channel.send({
+        type: 'broadcast',
+        event: 'sync',
+        payload: {
+          timestamp: currentTime,
+          status: 'playing', // We'd detect actual status here
+          mode: mode
+        }
+      });
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [partyId, isHost, isPlayerReady, currentTime, mode]);
+
+  // Buffering Broadcast
+  useEffect(() => {
+    if (!partyId) return;
+    const supabase = createClient();
+    const channel = supabase.channel(`party_sync:${partyId}`);
+    
+    channel.send({
+      type: 'broadcast',
+      event: 'buffering',
+      payload: { 
+        username: 'A friend', // Fallback
+        isBuffering 
+      }
+    });
+  }, [partyId, isBuffering]);
+
   const handleRefresh = () => {
     setPlayerKey(prev => prev + 1);
     setShowAdGuard(true);
@@ -259,6 +361,17 @@ export function VideoPlayer({
 
   const activeFreeId = dynamicFreeId || fullFilmYoutubeId;
 
+  if (isPartyEnded) {
+    return (
+      <EndPartyScreen 
+        title={title} 
+        tmdbId={tmdbId} 
+        mediaType={mediaType} 
+        posterPath={posterPath || backdrop} 
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Cinema Mode Backdrop */}
@@ -315,6 +428,7 @@ export function VideoPlayer({
               title={title}
               startTime={typeof window !== 'undefined' ? Number(new URLSearchParams(window.location.search).get('t')) || 0 : 0}
               onProgress={handleProgress}
+              onBuffering={setIsBuffering}
             />
             <div className="absolute bottom-6 left-6 z-20"><ReportButton videoId={activeFreeId} title={title} /></div>
           </div>
@@ -325,6 +439,33 @@ export function VideoPlayer({
             )}
           </div>
         )}
+
+        {/* Buffering Overlay */}
+        <AnimatePresence>
+          {bufferingParticipants.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 bg-black/60 backdrop-blur-md flex flex-col items-center justify-center space-y-6"
+            >
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full border-4 border-white/5 border-t-[--flx-cyan] animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                   <Users className="text-[--flx-cyan] animate-pulse" size={24} />
+                </div>
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-bebas tracking-[4px] text-white">Waiting for Others...</h3>
+                <p className="text-[10px] font-bold text-white/40 uppercase tracking-[2px]">
+                   {bufferingParticipants.join(', ')} {bufferingParticipants.length === 1 ? 'is' : 'are'} buffering
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <ReactionOverlay tmdbId={tmdbId} currentTime={currentTime} />
 
         {/* Keyboard Shortcut Hints */}
         <AnimatePresence>
@@ -453,15 +594,17 @@ export function VideoPlayer({
             <span>Progress</span>
             <span>{duration > 0 ? `${Math.floor(currentTime/60)}:${(currentTime%60).toString().padStart(2,'0')} / ${Math.floor(duration/60)}:${(duration%60).toString().padStart(2,'0')}` : 'Live Stream'}</span>
           </div>
-          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+          <div className="relative h-1.5 w-full bg-white/5 rounded-full">
+            <ReactionHeatmap tmdbId={tmdbId} duration={duration} />
             <div 
-              className="h-full bg-linear-to-r from-[--flx-purple] via-[--flx-cyan] to-[--flx-purple] bg-size-[200%_100%] animate-shimmer" 
+              className="absolute inset-y-0 left-0 bg-linear-to-r from-[--flx-purple] via-[--flx-cyan] to-[--flx-purple] bg-size-[200%_100%] animate-shimmer rounded-full transition-all" 
               style={{ width: duration > 0 ? `${(currentTime / duration) * 100}%` : '100%' }}
             />
           </div>
         </div>
 
         <div className="flex items-center gap-4">
+          <ReactionToggle />
           <button className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-white/40 hover:text-white transition-all"><Info size={18} /></button>
           <button onClick={handleRefresh} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-white/40 hover:text-[--flx-cyan] transition-all"><RefreshCw size={18} /></button>
         </div>

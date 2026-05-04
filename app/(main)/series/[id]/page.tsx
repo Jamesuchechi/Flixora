@@ -13,6 +13,8 @@ import { SeasonSelector } from '@/components/tv/SeasonSelector';
 import { TrailerInsights } from '@/components/movie/TrailerInsights';
 import { MovieRow } from '@/components/home/MovieRow';
 import { LandscapeCard } from '@/components/movie/LandscapeCard';
+import { StartPartyButton } from '@/components/social/StartPartyButton';
+import { ReactionHighlights } from '@/components/social/ReactionHighlights';
 import type { TMDBCredits, TMDBVideo, TMDBCastMember, TMDBSeason, TMDBExternalIds } from '@/types/tmdb';
 
 interface Props {
@@ -203,6 +205,7 @@ export default async function SeriesDetailPage({ params, searchParams }: Props) 
                   Play S1 E1
                 </Link>
                 <TrailerButton videos={videos} title={show.name} />
+                <StartPartyButton tmdbId={show.id} mediaType="tv" />
                 <WatchlistButton id={show.id} mediaType="tv" />
               </div>
             </div>
@@ -274,6 +277,8 @@ export default async function SeriesDetailPage({ params, searchParams }: Props) 
                   </Link>
                 )}
               </div>
+
+              <ReactionHighlights tmdbId={show.id} />
             </aside>
           </div>
         </div>
