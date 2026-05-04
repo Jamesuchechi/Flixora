@@ -59,6 +59,9 @@ export function UserMenu() {
         <Link href="/profile" className="block px-4 py-2 text-xs text-[--flx-text-2] hover:bg-white/5 hover:text-[--flx-cyan] transition-colors">
           My Watchlist
         </Link>
+        <Link href="/wrapped" className="block px-4 py-2 text-xs text-[--flx-cyan] font-bold hover:bg-white/5 transition-colors">
+          Flixora Wrapped
+        </Link>
         <Link href="/settings" className="block px-4 py-2 text-xs text-[--flx-text-2] hover:bg-white/5 hover:text-[--flx-cyan] transition-colors">
           Settings
         </Link>

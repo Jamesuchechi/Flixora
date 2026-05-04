@@ -106,7 +106,27 @@ export function VideoPlayer({
   const [forceStream, setForceStream] = useState(false);
   const [isCinemaMode, setIsCinemaMode] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(true);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const youtubeRef = useRef<YouTubePlayerRef>(null);
+
+  // Listen for ready signals from 3rd-party iframes
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      // Check for common 'ready' events from player embeds
+      try {
+        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        const readyEvents = ['ready', 'player_ready', 'video_ready', 'vidsrc_ready', 'vidlink_ready'];
+        if (data && (readyEvents.includes(data.event) || readyEvents.includes(data.type) || data === 'ready')) {
+          setIsPlayerReady(true);
+        }
+      } catch {
+        // Not JSON or other message, ignore
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   const isUnreleased = useMemo(() => {
     if (!releaseDate) return false;
@@ -168,14 +188,25 @@ export function VideoPlayer({
   const handleRefresh = () => {
     setPlayerKey(prev => prev + 1);
     setShowAdGuard(true);
+    setIsPlayerReady(false);
   };
+
+  const lastUpdateRef = useRef<{ percent: number; time: number }>({ percent: -1, time: 0 });
 
   const handleProgress = async (seconds: number, dur: number) => {
     if (dur > 0) {
       setCurrentTime(seconds);
       setDuration(dur);
+      
       const percent = Math.floor((seconds / dur) * 100);
-      if (percent % 5 === 0) {
+      const now = Date.now();
+      
+      const isMilestone = percent % 5 === 0;
+      const isNewPercent = percent !== lastUpdateRef.current.percent;
+      const enoughTimePassed = now - lastUpdateRef.current.time > 10000;
+
+      if (isMilestone && isNewPercent && enoughTimePassed) {
+        lastUpdateRef.current = { percent, time: now };
         await updateWatchProgress(tmdbId, mediaType, percent, season, episode);
       }
     }
@@ -195,6 +226,7 @@ export function VideoPlayer({
     setActiveServer(server);
     setShowServerList(false);
     setShowAdGuard(true);
+    setIsPlayerReady(false);
   };
 
   const handleAISearch = async () => {
@@ -250,7 +282,7 @@ export function VideoPlayer({
         {/* Player Modes */}
         {mode === 'player' ? (
           <div className="w-full h-full relative">
-            <SmartGuard isShieldActive={showAdGuard} onRefresh={handleRefresh} />
+            <SmartGuard isShieldActive={showAdGuard} onRefresh={handleRefresh} isReady={isPlayerReady} />
             {isUnreleased && !forceStream ? (
               <div className="absolute inset-0 z-40 bg-[#090514] flex flex-col items-center justify-center p-12 text-center space-y-6">
                 <div className="w-20 h-20 rounded-full bg-[--flx-cyan]/10 flex items-center justify-center animate-pulse"><Calendar className="text-[--flx-cyan]" size={40} /></div>

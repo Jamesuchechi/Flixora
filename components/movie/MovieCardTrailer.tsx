@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { getTrailerWithCache } from '@/lib/supabase/actions/video-logic';
 import { TrailerPlayer } from './TrailerPlayer';
+import { useStore } from '@/store/useStore';
 
 interface MovieCardTrailerProps {
   id: number;
@@ -18,9 +19,10 @@ export function MovieCardTrailer({ id, mediaType, isVisible }: MovieCardTrailerP
   const [videoKey, setVideoKey] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoplay = useStore((s) => s.preferences.autoplay);
 
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isVisible || !autoplay) return;
 
     // 200ms delay before starting fetch/play
     timerRef.current = setTimeout(async () => {
@@ -37,7 +39,7 @@ export function MovieCardTrailer({ id, mediaType, isVisible }: MovieCardTrailerP
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isVisible, id, mediaType]);
+  }, [isVisible, id, mediaType, autoplay]);
 
   if (!isVisible || !videoKey) return null;
 

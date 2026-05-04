@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWatchRecommendations, GroqMessage } from '@/lib/ai/groq';
+import { rateLimit } from '@/lib/utils/rate-limit';
 
 export async function POST(req: NextRequest) {
+  // 1. Rate Limiting (5 requests per minute)
+  const limiter = rateLimit(req, 5, 60000);
+  if (!limiter.success) {
+    return NextResponse.json(
+      { error: 'Quota exceeded. Please wait a minute before asking for more recommendations.' }, 
+      { status: 429 }
+    );
+  }
+
   try {
     const { query, history = [] } = await req.json();
 

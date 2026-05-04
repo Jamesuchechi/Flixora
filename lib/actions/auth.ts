@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 export interface AuthState {
   error?: string;
   success?: boolean;
+  email?: string;
 }
 
 // ── Sign Up ────────────────────────────────────────────────────────────────────
@@ -44,6 +45,21 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     });
   }
 
+  return { success: true, email };
+}
+
+// ── Resend Verification ────────────────────────────────────────────────────────
+export async function resendVerificationEmail(email: string): Promise<AuthState> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+    },
+  });
+
+  if (error) return { error: error.message };
   return { success: true };
 }
 
@@ -110,4 +126,32 @@ export async function getUserProfile() {
     .single();
 
   return { user, profile };
+}
+
+// ── Reset Password ───────────────────────────────────────────────────────────
+export async function resetPassword(email: string): Promise<AuthState> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`,
+  });
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+// ── Update Password ──────────────────────────────────────────────────────────
+export async function updatePassword(_: AuthState, formData: FormData): Promise<AuthState> {
+  const supabase = await createClient();
+  const password = formData.get('password') as string;
+
+  if (!password || password.length < 6) {
+    return { error: 'Password must be at least 6 characters.' };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) return { error: error.message };
+  
+  revalidatePath('/', 'layout');
+  redirect('/login?message=Password updated successfully');
 }

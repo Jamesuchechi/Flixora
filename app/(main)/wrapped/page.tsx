@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Sparkles, Trophy, Clock, Play, Tv, Clapperboard, Share2, Download, ChevronRight, Hash, Star, User, LucideIcon } from 'lucide-react';
 import { tmdb } from '@/lib/tmdb';
 import { Button } from '@/components/ui/Button';
-import { getAllWatchProgress } from '@/lib/supabase/actions/progress';
+import { getWrappedData } from '@/lib/supabase/actions/progress';
 import { getWatchlist } from '@/lib/supabase/actions/watchlist';
 import { getUserProfile } from '@/lib/supabase/actions/auth';
 import type { Profile, WatchProgress } from '@/types/supabase';
@@ -94,7 +94,7 @@ export default function WrappedPage() {
     async function loadStats() {
       const [profileData, progress, watchlist] = await Promise.all([
         getUserProfile(),
-        getAllWatchProgress(),
+        getWrappedData(),
         getWatchlist()
       ]);
 

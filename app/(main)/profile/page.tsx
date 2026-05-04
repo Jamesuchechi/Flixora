@@ -9,22 +9,42 @@ import { motion } from 'framer-motion';
 import { Settings, LogOut, Camera, Calendar, User, Clock } from 'lucide-react';
 import { getUserProfile, signOut } from '@/lib/supabase/actions/auth';
 import { getWatchlist } from '@/lib/supabase/actions/watchlist';
+import { TmdbImage } from '@/components/shared/TmdbImage';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Profile } from '@/types/supabase';
-import { Sparkles, Trophy, Flame, ChevronRight, Play } from 'lucide-react';
+import { Sparkles, Trophy, ChevronRight, Play } from 'lucide-react';
+
+interface HistoryItem {
+  id: string;
+  user_id: string;
+  tmdb_id: number;
+  media_type: 'movie' | 'tv';
+  progress: number;
+  season: number | null;
+  episode: number | null;
+  updated_at: string;
+  details: {
+    title?: string;
+    name?: string;
+    backdrop_path: string | null;
+    poster_path: string | null;
+  };
+}
 
 export default function ProfilePage() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState({ films: 0, series: 0, lists: 0 });
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'history' | 'settings'>('history');
 
   useEffect(() => {
     async function loadData() {
-      const [profileData, watchlist] = await Promise.all([
+      const [profileData, watchlist, progressData] = await Promise.all([
         getUserProfile(),
-        getWatchlist()
+        getWatchlist(),
+        import('@/lib/supabase/actions/progress').then(mod => mod.getAllWatchProgress())
       ]);
 
       if (profileData) {
@@ -35,7 +55,25 @@ export default function ProfilePage() {
       // Calculate stats
       const films = watchlist.filter(i => i.media_type === 'movie').length;
       const series = watchlist.filter(i => i.media_type === 'tv').length;
-      setStats({ films, series, lists: 0 }); // Lists TBD in future update
+      setStats({ films, series, lists: 0 });
+
+      // Fetch TMDB details for history items
+      if (progressData && progressData.length > 0) {
+        const { tmdb } = await import('@/lib/tmdb');
+        const historyItems = await Promise.all(
+          progressData.map(async (p) => {
+            try {
+              const details = p.media_type === 'movie' 
+                ? await tmdb.movies.detail(p.tmdb_id, { silent: true })
+                : await tmdb.tv.detail(p.tmdb_id, { silent: true });
+              return { ...p, details } as HistoryItem;
+            } catch {
+              return null;
+            }
+          })
+        );
+        setHistory(historyItems.filter((item): item is HistoryItem => item !== null));
+      }
       
       setLoading(false);
     }
@@ -205,76 +243,148 @@ export default function ProfilePage() {
         <div className="min-h-[400px]">
           {activeTab === 'history' && (
             <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000">
-               {/* Cinema DNA Teaser (Improved Empty State) */}
-               <div className="max-w-4xl mx-auto space-y-12">
-                  <div className="relative rounded-[40px] overflow-hidden border border-white/10 bg-[--flx-surface-1] p-12 group">
-                     <div className="absolute inset-0 bg-linear-to-br from-[--flx-purple]/10 via-transparent to-[--flx-cyan]/10 opacity-50" />
-                     <div className="absolute top-0 right-0 p-8 opacity-20 rotate-12 group-hover:rotate-0 transition-transform duration-1000">
-                        <Sparkles size={120} className="text-[--flx-cyan]" />
+               {history.length > 0 ? (
+                 <div className="max-w-6xl mx-auto space-y-16">
+                   {/* Watch History Grid */}
+                   <div className="space-y-8">
+                     <div className="flex items-center justify-between">
+                       <div className="flex items-center gap-4">
+                         <Clock className="text-[--flx-cyan]" size={20} />
+                         <h3 className="text-[10px] font-black uppercase tracking-[4px] text-white/40">Recently Watched</h3>
+                       </div>
+                       <span className="text-[9px] font-black text-[--flx-cyan] uppercase tracking-widest bg-[--flx-cyan]/10 px-3 py-1 rounded-full border border-[--flx-cyan]/20">
+                         {history.length} Titles
+                       </span>
                      </div>
+                     
+                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-10">
+                       {history.map((item) => (
+                         <Link 
+                           key={`${item.media_type}-${item.tmdb_id}`}
+                           href={`/${item.media_type === 'tv' ? 'series' : 'movies'}/${item.tmdb_id}`}
+                           className="group relative"
+                         >
+                           <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/5 bg-white/5 shadow-2xl transition-all duration-500 group-hover:scale-[1.02] group-hover:border-white/20">
+                             <TmdbImage 
+                               path={item.details.backdrop_path || item.details.poster_path} 
+                               alt={item.details.title || item.details.name || 'Media Title'}
+                               size="w780"
+                               className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                             />
+                             <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+                             
+                             {/* Progress Bar */}
+                             <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/10 overflow-hidden">
+                               <motion.div 
+                                 initial={{ width: 0 }}
+                                 animate={{ width: `${item.progress}%` }}
+                                 className="h-full bg-[--flx-cyan]"
+                               />
+                             </div>
 
-                     <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
-                        <div className="w-full md:w-1/2 space-y-6">
-                           <div className="inline-flex items-center gap-2 px-3 py-1 bg-[--flx-purple]/20 border border-[--flx-purple]/30 rounded-full text-[9px] font-black uppercase tracking-widest text-[--flx-purple]">
-                              <Trophy size={12} />
-                              Unlock your profile
+                             {/* Play Button Overlay */}
+                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 scale-75 group-hover:scale-100">
+                               <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-2xl">
+                                 <Play size={20} fill="black" className="ml-1" />
+                               </div>
+                             </div>
                            </div>
-                           <h2 className="font-bebas text-5xl md:text-6xl text-white tracking-tight uppercase leading-none">Your Cinema DNA</h2>
-                           <p className="text-sm text-white/40 leading-relaxed max-w-sm">
-                              Start watching to unlock your personalized taste graph, deep analytics, and cinematic badges. Your viewing habits define your identity.
-                           </p>
-                           <Link href="/home" className="inline-flex items-center gap-3 bg-[--flx-cyan] text-black px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[--flx-cyan]/20">
-                              <Play size={16} fill="black" />
-                              Start Your Journey
-                           </Link>
-                        </div>
-
-                        {/* Blurred DNA Preview */}
-                        <div className="w-full md:w-1/2 relative aspect-video rounded-3xl overflow-hidden border border-white/5 bg-black/40 backdrop-blur-3xl p-6 group-hover:border-[--flx-cyan]/30 transition-all">
-                           <div className="absolute inset-0 bg-linear-to-br from-[--flx-purple]/20 to-[--flx-cyan]/20 blur-3xl" />
-                           <div className="relative h-full flex flex-col justify-between filter blur-md grayscale select-none opacity-40">
-                              <div className="flex justify-between items-start">
-                                 <div className="space-y-2">
-                                    <div className="w-24 h-4 bg-white/20 rounded-full" />
-                                    <div className="w-40 h-8 bg-white/20 rounded-full" />
-                                 </div>
-                                 <div className="w-16 h-16 rounded-full bg-white/20" />
-                              </div>
-                              <div className="grid grid-cols-4 gap-3">
-                                 {[1,2,3,4].map(i => <div key={i} className="aspect-2/3 bg-white/10 rounded-lg" />)}
-                              </div>
+                           
+                           <div className="mt-4 space-y-1">
+                             <h4 className="text-[11px] font-black text-white uppercase tracking-wider truncate">
+                               {item.details.title || item.details.name}
+                             </h4>
+                             <div className="flex items-center gap-2">
+                               <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">
+                                 {item.media_type === 'movie' ? 'Film' : 'Series'}
+                               </span>
+                               <span className="w-1 h-1 rounded-full bg-white/10" />
+                               <span className="text-[9px] font-black text-[--flx-cyan] uppercase tracking-widest">
+                                 {item.progress}% Complete
+                               </span>
+                             </div>
                            </div>
-                           <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="flex flex-col items-center gap-4">
-                                 <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center border border-white/20 backdrop-blur-xl">
-                                    <Clock size={32} className="text-white/40" />
-                                 </div>
-                                 <span className="text-[10px] font-black uppercase tracking-[4px] text-white/40">Locked Content</span>
-                              </div>
-                           </div>
-                        </div>
+                         </Link>
+                       ))}
                      </div>
-                  </div>
+                   </div>
 
-                  {/* Recently Rated Section Teaser */}
-                  <div className="space-y-8 pt-8">
-                     <div className="flex items-center gap-4">
-                        <Flame className="text-[--flx-pink]" size={20} />
-                        <h3 className="text-[10px] font-black uppercase tracking-[4px] text-white/40">Recently Rated</h3>
-                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-40 grayscale pointer-events-none">
-                        {[1,2,3].map(i => (
-                          <div key={i} className="p-6 rounded-3xl bg-white/3 border border-white/5 flex items-center gap-4">
-                             <div className="w-12 h-16 bg-white/5 rounded-lg shrink-0" />
-                             <div className="space-y-2">
-                                <div className="w-24 h-3 bg-white/10 rounded-full" />
-                                <div className="flex gap-1 text-[--flx-gold]">★★★★★</div>
+                   {/* DNA Teaser as Stats Card */}
+                   <div className="relative rounded-[40px] overflow-hidden border border-white/10 bg-[--flx-surface-1] p-12 group">
+                      <div className="absolute inset-0 bg-linear-to-br from-[--flx-purple]/10 via-transparent to-[--flx-cyan]/10 opacity-50" />
+                      <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
+                         <div className="w-full md:w-1/2 space-y-6">
+                            <h2 className="font-bebas text-5xl text-white tracking-tight uppercase leading-none">Cinema Analytics</h2>
+                            <p className="text-sm text-white/40 leading-relaxed max-w-sm">
+                               Your viewing habits are being processed. Soon you&apos;ll be able to see deep insights into your favorite genres, directors, and cinematic moods.
+                            </p>
+                         </div>
+                         <div className="w-full md:w-1/2 grid grid-cols-2 gap-4">
+                            {[
+                               { label: 'Watch Time', value: '124h', icon: Clock },
+                               { label: 'Genre Mastery', value: 'Sci-Fi', icon: Sparkles },
+                            ].map((stat, i) => (
+                               <div key={i} className="p-6 rounded-3xl bg-white/3 border border-white/5 space-y-2">
+                                  <stat.icon size={20} className="text-[--flx-cyan]" />
+                                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">{stat.label}</p>
+                                  <p className="text-2xl font-bebas text-white tracking-wider">{stat.value}</p>
+                               </div>
+                            ))}
+                         </div>
+                      </div>
+                   </div>
+                 </div>
+               ) : (
+                 <div className="max-w-4xl mx-auto space-y-12">
+                    <div className="relative rounded-[40px] overflow-hidden border border-white/10 bg-[--flx-surface-1] p-12 group">
+                       <div className="absolute inset-0 bg-linear-to-br from-[--flx-purple]/10 via-transparent to-[--flx-cyan]/10 opacity-50" />
+                       <div className="absolute top-0 right-0 p-8 opacity-20 rotate-12 group-hover:rotate-0 transition-transform duration-1000">
+                          <Sparkles size={120} className="text-[--flx-cyan]" />
+                       </div>
+
+                       <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
+                          <div className="w-full md:w-1/2 space-y-6">
+                             <div className="inline-flex items-center gap-2 px-3 py-1 bg-[--flx-purple]/20 border border-[--flx-purple]/30 rounded-full text-[9px] font-black uppercase tracking-widest text-[--flx-purple]">
+                                <Trophy size={12} />
+                                Unlock your profile
+                             </div>
+                             <h2 className="font-bebas text-5xl md:text-6xl text-white tracking-tight uppercase leading-none">Your Cinema DNA</h2>
+                             <p className="text-sm text-white/40 leading-relaxed max-w-sm">
+                                Start watching to unlock your personalized taste graph, deep analytics, and cinematic badges. Your viewing habits define your identity.
+                             </p>
+                             <Link href="/home" className="inline-flex items-center gap-3 bg-[--flx-cyan] text-black px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[--flx-cyan]/20">
+                                <Play size={16} fill="black" />
+                                Start Your Journey
+                             </Link>
+                          </div>
+
+                          <div className="w-full md:w-1/2 relative aspect-video rounded-3xl overflow-hidden border border-white/5 bg-black/40 backdrop-blur-3xl p-6 group-hover:border-[--flx-cyan]/30 transition-all">
+                             <div className="absolute inset-0 bg-linear-to-br from-[--flx-purple]/20 to-[--flx-cyan]/20 blur-3xl" />
+                             <div className="relative h-full flex flex-col justify-between filter blur-md grayscale select-none opacity-40">
+                                <div className="flex justify-between items-start">
+                                   <div className="space-y-2">
+                                      <div className="w-24 h-4 bg-white/20 rounded-full" />
+                                      <div className="w-40 h-8 bg-white/20 rounded-full" />
+                                   </div>
+                                   <div className="w-16 h-16 rounded-full bg-white/20" />
+                                </div>
+                                <div className="grid grid-cols-4 gap-3">
+                                   {[1,2,3,4].map(i => <div key={i} className="aspect-2/3 bg-white/10 rounded-lg" />)}
+                                </div>
+                             </div>
+                             <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="flex flex-col items-center gap-4">
+                                   <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center border border-white/20 backdrop-blur-xl">
+                                      <Clock size={32} className="text-white/40" />
+                                   </div>
+                                   <span className="text-[10px] font-black uppercase tracking-[4px] text-white/40">Locked Content</span>
+                                </div>
                              </div>
                           </div>
-                        ))}
-                     </div>
-                  </div>
-               </div>
+                       </div>
+                    </div>
+                 </div>
+               )}
             </div>
           )}
 

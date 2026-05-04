@@ -10,46 +10,20 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import Image from 'next/image';
+import { useStore, UserPreferences } from '@/store/useStore';
 
 export default function SettingsPage() {
+  const { preferences: prefs, setPreference, setAllPreferences } = useStore();
+  
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'profile' | 'account' | 'preferences' | 'appearance'>('profile');
   
-  // Local states for previews
   const [avatarUrl, setAvatarUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [uploading, setUploading] = useState<'avatar' | 'cover' | null>(null);
-
-  // Preference states
-  interface UserPreferences {
-    autoplay: boolean;
-    notifications: boolean;
-    quality: string;
-    compactMode: boolean;
-    accentColor: string;
-    soundEffects: boolean;
-  }
-
-  const [prefs, setPrefs] = useState<UserPreferences>(() => {
-    // Default values
-    const defaults: UserPreferences = {
-      autoplay: true,
-      notifications: true,
-      quality: '4k',
-      compactMode: false,
-      accentColor: '#8b5cf6',
-      soundEffects: false // Default to false as requested
-    };
-    
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('flx_user_prefs');
-      if (saved) return JSON.parse(saved);
-    }
-    return defaults;
-  });
-
+  
   // Danger Zone Modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -59,31 +33,52 @@ export default function SettingsPage() {
 
   const [state, formAction, isPending] = useActionState(updateProfile, {});
 
-  // Load preferences from localStorage (Applied via lazy init above)
   useEffect(() => {
     async function loadData() {
-      const data = await getUserProfile();
-      if (data) {
-        setUser(data.user);
-        setProfile(data.profile);
-        setAvatarUrl(data.profile?.avatar_url || '');
-        setCoverUrl(data.profile?.cover_url || '');
+      const [profileData, prefData] = await Promise.all([
+        getUserProfile(),
+        import('@/lib/supabase/actions/preferences').then(mod => mod.getUserPreferences())
+      ]);
+
+      if (profileData) {
+        setUser(profileData.user);
+        setProfile(profileData.profile);
+        setAvatarUrl(profileData.profile?.avatar_url || '');
+        setCoverUrl(profileData.profile?.cover_url || '');
+      }
+
+      if (prefData) {
+        setAllPreferences(prefData);
       }
       setLoading(false);
     }
     loadData();
-  }, []);
+  }, [setAllPreferences]);
 
   // Save preferences
   useEffect(() => {
     if (!loading && prefs.accentColor) {
-      localStorage.setItem('flx_user_prefs', JSON.stringify(prefs));
       document.documentElement.style.setProperty('--flx-purple', prefs.accentColor);
     }
-  }, [prefs, loading]);
+  }, [prefs.accentColor, loading]);
 
-  const togglePref = (key: keyof typeof prefs) => {
-    setPrefs(p => ({ ...p, [key]: !p[key] }));
+  type BooleanPreferences = {
+    [K in keyof UserPreferences]: UserPreferences[K] extends boolean ? K : never;
+  }[keyof UserPreferences];
+
+  const togglePref = async (key: BooleanPreferences) => {
+    const newValue = !prefs[key];
+    setPreference(key, newValue as UserPreferences[BooleanPreferences]);
+    
+    // Sync to Supabase
+    const { updatePlaybackPreference } = await import('@/lib/supabase/actions/preferences');
+    await updatePlaybackPreference(key, newValue);
+  };
+
+  const handleQualityChange = async (val: string) => {
+    setPreference('quality', val);
+    const { updatePlaybackPreference } = await import('@/lib/supabase/actions/preferences');
+    await updatePlaybackPreference('quality', val);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
@@ -99,15 +94,19 @@ export default function SettingsPage() {
     setUploading(type);
     const supabase = createClient();
     const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+    const fileName = `${user.id}.${fileExt}`; // Fixed name per user to prevent bloat
     const bucket = type === 'avatar' ? 'avatars' : 'covers';
 
     try {
       const { data, error } = await supabase.storage
         .from(bucket)
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, file, { 
+          cacheControl: '3600',
+          upsert: true 
+        });
 
       if (error) throw error;
+      if (!data) throw new Error('No data returned from upload');
 
       const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
       
@@ -116,7 +115,8 @@ export default function SettingsPage() {
       
     } catch (err) {
       console.error('Upload failed:', err);
-      alert('Upload failed. Check storage bucket permissions.');
+      const message = err instanceof Error ? err.message : 'Check storage bucket permissions.';
+      alert(`Upload failed: ${message}`);
     } finally {
       setUploading(null);
     }
@@ -449,7 +449,7 @@ export default function SettingsPage() {
                           </div>
                           <select 
                             value={prefs.quality}
-                            onChange={(e) => setPrefs(p => ({ ...p, quality: e.target.value }))}
+                            onChange={(e) => handleQualityChange(e.target.value)}
                             className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white outline-none cursor-pointer hover:bg-white/10 transition-colors"
                           >
                              <option value="4k">4K UHD</option>
@@ -503,7 +503,11 @@ export default function SettingsPage() {
                              ].map((c) => (
                                <button 
                                  key={c.name}
-                                 onClick={() => setPrefs(p => ({ ...p, accentColor: c.color }))}
+                                 onClick={async () => {
+                                   setPreference('accentColor', c.color);
+                                   const { updatePlaybackPreference } = await import('@/lib/supabase/actions/preferences');
+                                   await updatePlaybackPreference('accentColor', c.color);
+                                 }}
                                  className="flex flex-col items-center gap-4 group cursor-pointer"
                                >
                                   <div className={cn(

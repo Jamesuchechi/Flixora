@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, BrainCircuit } from 'lucide-react';
 import { getAIInsights } from '@/lib/supabase/actions/ai-metadata';
+import { useStore } from '@/store/useStore';
 
 interface AIInsights {
   expectations: string;
@@ -19,17 +20,25 @@ interface TrailerInsightsProps {
 }
 
 export function TrailerInsights({ tmdbId, title, overview, genres }: TrailerInsightsProps) {
-  const [insights, setInsights] = useState<AIInsights | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedInsights = useStore((s) => s.aiCache[tmdbId]);
+  const setAiCache = useStore((s) => s.setAiCache);
+  const [insights, setInsights] = useState<AIInsights | null>(cachedInsights || null);
+  const [loading, setLoading] = useState(!cachedInsights);
 
   useEffect(() => {
+    if (cachedInsights) return;
+
     async function load() {
+      setLoading(true);
       const data = await getAIInsights(tmdbId, title, overview, genres);
-      setInsights(data);
+      if (data) {
+        setInsights(data);
+        setAiCache(tmdbId, data);
+      }
       setLoading(false);
     }
     load();
-  }, [tmdbId, title, overview, genres]);
+  }, [tmdbId, title, overview, genres, cachedInsights, setAiCache]);
 
   if (loading) return (
     <div className="mt-8 p-6 bg-white/5 border border-white/5 rounded-[24px] animate-pulse">

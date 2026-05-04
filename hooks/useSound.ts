@@ -1,21 +1,16 @@
 'use client';
 
 import { useCallback } from 'react';
+import { useStore } from '@/store/useStore';
 
 /**
  * High-fidelity Audio Hook for cinematic micro-interactions.
  */
 export function useSound() {
+  const soundEnabled = useStore((s) => s.preferences.soundEffects);
+
   const playPop = useCallback(() => {
-    // Check if sounds are disabled in preferences
-    const prefs = typeof window !== 'undefined' ? localStorage.getItem('flx_user_prefs') : null;
-    if (prefs) {
-      const parsed = JSON.parse(prefs);
-      if (!parsed.soundEffects) return;
-    } else {
-      // Default to OFF as requested by user
-      return;
-    }
+    if (!soundEnabled) return;
 
     const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const audioCtx = new AudioContextClass();
@@ -33,7 +28,7 @@ export function useSound() {
 
     oscillator.start();
     oscillator.stop(audioCtx.currentTime + 0.08);
-  }, []);
+  }, [soundEnabled]);
 
   return { playPop };
 }

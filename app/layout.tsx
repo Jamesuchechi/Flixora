@@ -24,6 +24,7 @@ const bebasNeue = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://flixora-pi.vercel.app'),
   title: { default: 'Flixora', template: '%s | Flixora' },
   description: 'Stream movies and series in stunning cinematic quality.',
   manifest: '/manifest.webmanifest',
@@ -35,12 +36,21 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  openGraph: {
+    type: 'website',
+    siteName: 'Flixora',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+  },
 };
 
 import { PWARegistration } from '@/components/layout/PWARegistration';
 import { PageWipe } from '@/components/transitions/PageWipe';
 import { BackGesture } from '@/components/transitions/BackGesture';
 import { ConnectionToast } from '@/components/shared/ConnectionToast';
+import { GlobalStateSyncer } from '@/components/shared/GlobalStateSyncer';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -50,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PageWipe />
         <BackGesture />
         <ConnectionToast />
+        <GlobalStateSyncer />
         {children}
       </body>
     </html>

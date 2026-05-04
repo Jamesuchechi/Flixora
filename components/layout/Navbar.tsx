@@ -27,6 +27,7 @@ const NAV_LINKS = [
 export function Navbar() {
   const pathname = usePathname();
   const setSearchOpen = useStore((s) => s.setSearchOpen);
+  const unreadCount = useStore((s) => s.unreadNotifications);
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
 
@@ -119,10 +120,12 @@ export function Navbar() {
       {/* Right actions */}
       <div className="flex items-center gap-4">
         {/* LIVE Badge */}
-        <div className="hidden lg:flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-full">
-          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-red-400">3 new</span>
-        </div>
+        {unreadCount > 0 && (
+          <div className="hidden lg:flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-full">
+            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-red-400">{unreadCount} new</span>
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative group/search">
@@ -144,7 +147,9 @@ export function Navbar() {
           className="hidden sm:flex relative w-10 h-10 items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all cursor-pointer text-[--flx-text-2] hover:text-[--flx-cyan]"
         >
           <BellIcon />
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[--flx-pink] rounded-full border-2 border-[--flx-bg] shadow-[0_0_8px_rgba(244,114,182,0.5)]" />
+          {unreadCount > 0 && (
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[--flx-pink] rounded-full border-2 border-[--flx-bg] shadow-[0_0_8px_rgba(244,114,182,0.5)]" />
+          )}
         </Link>
 
         {/* User Menu */}

@@ -453,16 +453,29 @@
 - [ ] Spoiler-safe mode: blur ratings until you've watched the title yourself
 - [ ] Notification bell: new activity from friends triggers notification
 
-### 11.4 Watch Parties
+### 11.4 Watch Parties (Real-time Social)
 
-- [ ] `watch_parties` Supabase table: `{ id, host_id, tmdb_id, youtube_id, state, created_at }`
-- [ ] `party_members` table: `{ party_id, user_id, joined_at }`
-- [ ] `party_messages` table: `{ party_id, user_id, content, timestamp, created_at }`
-- [ ] Create party from movie/series detail page — generates shareable link `/party/[id]`
-- [ ] Join flow: click link → preview page → "Join Party" button
-- [ ] Playback sync using Supabase Realtime: host controls play/pause/seek, members follow
-- [ ] Max 50ms sync tolerance — resync mechanism if drift detected
-- [ ] Party chat sidebar: real-time messages with emoji reactions
+- [ ] `watch_parties` Supabase table: `{ id, host_id, tmdb_id, media_type, status, current_timestamp, created_at }`
+- [ ] `party_participants` Supabase table: `{ party_id, user_id, joined_at }`
+- [ ] `party_messages` Supabase table: `{ party_id, user_id, content, created_at }`
+- [ ] **Real-time Synced Playback**:
+    - [ ] Host controls: Play/Pause/Seek events broadcast to all participants via Supabase Channels
+    - [ ] Auto-sync: Late joiners automatically seek to the host's current timestamp
+    - [ ] Buffer handling: "Waiting for others..." overlay if a participant is buffering heavily
+- [ ] **Social Chat Sidebar**:
+    - [ ] Real-time messaging with `framer-motion` for smooth entrance
+    - [ ] System messages: "User X joined", "Host paused the movie"
+    - [ ] Emoji reactions & quick-replies (🔥, 😱, 😭, 😂)
+- [ ] **Lobby & Invites**:
+    - [ ] "Start Watch Party" button on any movie/series detail page
+    - [ ] Unique shareable link: `flixora.io/party/[id]`
+    - [ ] Invite modal: Search friends and send instant notifications to join
+- [ ] **Party UI**:
+    - [ ] Minimized "Participant Strip" showing avatars of everyone watching
+    - [ ] One-click "Sync with Host" button if local playback drifts
+    - [ ] "End Party" vs "Leave Party" logic for hosts vs guests
+
+### 11.5 Virtual Cinema Rooms (Phase 12 Preview)
 - [ ] Emoji reaction overlay on player: tap emoji → floats up over video for all members
 - [ ] Host controls panel: kick member, transfer host, lock party (invite-only)
 - [ ] Party size limits: Free = 3 members, Pro = 10, Family = 20

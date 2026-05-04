@@ -75,8 +75,27 @@ export async function getAllWatchProgress(): Promise<WatchProgress[]> {
     .from('watch_progress')
     .select('*')
     .eq('user_id', user.id)
+    .lt('progress', 100) // Only show unfinished titles
     .order('updated_at', { ascending: false })
     .limit(10);
+
+  if (error) return [];
+  return data || [];
+}
+
+/**
+ * Fetch all watch progress records for Wrapped stats (includes finished titles).
+ */
+export async function getWrappedData(): Promise<WatchProgress[]> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('watch_progress')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('updated_at', { ascending: false });
 
   if (error) return [];
   return data || [];

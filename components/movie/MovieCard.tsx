@@ -8,6 +8,7 @@ import { useStore } from '@/store/useStore';
 import { MovieCardTrailer } from './MovieCardTrailer';
 import { useSound } from '@/hooks/useSound';
 import { TmdbImage } from '../shared/TmdbImage';
+import { toggleWatchlist } from '@/lib/supabase/actions/watchlist';
 
 interface MovieCardProps {
   id: number;
@@ -119,14 +120,19 @@ export function MovieCard({
 
           {/* Watchlist button (Heart) */}
           <button
-            onClick={(e) => {
+            onClick={async (e) => {
               e.preventDefault();
               e.stopPropagation();
+              
+              // Optimistic local update
               if (saved) {
                 removeFromWatchlist(id);
               } else {
                 addToWatchlist(id);
               }
+
+              // Persist to Supabase
+              await toggleWatchlist(id, mediaType);
             }}
             aria-label={saved ? "Remove from watchlist" : "Add to watchlist"}
             className={cn(

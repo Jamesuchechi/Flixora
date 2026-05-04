@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { signIn, signUp, type AuthState } from '@/lib/actions/auth';
 import { cn } from '@/lib/utils';
 import { Mail, Lock, User } from 'lucide-react';
+import { VerifyEmail } from './VerifyEmail';
+import { ForgotPassword } from './ForgotPassword';
+import { useState } from 'react';
 
 interface AuthFormProps {
   mode: 'login' | 'signup';
@@ -14,6 +17,7 @@ interface AuthFormProps {
 const initialState: AuthState = {};
 
 export function AuthForm({ mode, redirectError }: AuthFormProps) {
+  const [showForgot, setShowForgot] = useState(false);
   const action = mode === 'login' ? signIn : signUp;
   const [state, formAction, pending] = useActionState(action, initialState);
 
@@ -44,6 +48,22 @@ export function AuthForm({ mode, redirectError }: AuthFormProps) {
   const iconClass = "absolute left-4 top-1/2 -translate-y-1/2 text-[--flx-text-3] group-focus-within:text-[--flx-purple] transition-colors";
   const inputClass = 'w-full bg-white/2 border border-white/10 hover:border-white/20 focus:border-[--flx-purple]/50 focus:bg-white/5 rounded-2xl pl-12 pr-4 py-4 text-[15px] text-white placeholder-white/20 outline-none transition-all font-light';
 
+  if (state.success && mode === 'signup') {
+    return (
+      <div className="bg-white/5 border border-white/10 rounded-[40px] p-8 lg:p-10 shadow-2xl backdrop-blur-xl w-full">
+        <VerifyEmail email={state.email || ''} />
+      </div>
+    );
+  }
+
+  if (showForgot) {
+    return (
+      <div className="bg-white/5 border border-white/10 rounded-[40px] p-8 lg:p-10 shadow-2xl backdrop-blur-xl w-full">
+        <ForgotPassword onBack={() => setShowForgot(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white/5 border border-white/10 rounded-[40px] p-8 lg:p-10 shadow-2xl backdrop-blur-xl w-full">
       <div className="mb-10 text-center lg:text-left">
@@ -54,12 +74,6 @@ export function AuthForm({ mode, redirectError }: AuthFormProps) {
           {mode === 'login' ? 'Sign in to continue your journey.' : 'Join the elite community of movie lovers.'}
         </p>
       </div>
-
-      {state.success && mode === 'signup' && (
-        <div className="mb-8 p-4 rounded-2xl bg-[--flx-cyan]/10 border border-[--flx-cyan]/20 text-[13px] text-cyan-300 animate-fade-in text-center">
-          Success! Check your email to confirm your account.
-        </div>
-      )}
 
       {(state.error || redirectError) && (
         <div className="mb-8 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-[13px] text-red-300 animate-shake text-center">
@@ -106,7 +120,8 @@ export function AuthForm({ mode, redirectError }: AuthFormProps) {
           {mode === 'login' && (
             <button 
               type="button" 
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] text-[--flx-cyan] hover:opacity-70 transition-opacity font-medium"
+              onClick={() => setShowForgot(true)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] text-[--flx-cyan] hover:opacity-70 transition-opacity font-medium cursor-pointer"
             >
               Forgot?
             </button>

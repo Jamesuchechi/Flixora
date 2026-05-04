@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 interface SmartGuardProps {
   isShieldActive: boolean;
   onRefresh: () => void;
+  isReady?: boolean;
   className?: string;
 }
 
@@ -15,13 +16,13 @@ interface SmartGuardProps {
  * Neutralizes 3rd party ads by sandboxing them and masking the initial load
  * with a premium "Preparing Cinema" UI.
  */
-export function SmartGuard({ isShieldActive, onRefresh, className }: SmartGuardProps) {
-  const [countdown, setCountdown] = useState(3);
+export function SmartGuard({ isShieldActive, onRefresh, isReady, className }: SmartGuardProps) {
+  const [safetyTimer, setSafetyTimer] = useState(15);
   const [isDismissed, setIsDismissed] = useState(false);
   const [showStatus, setShowStatus] = useState(false);
   const [isPreparing, setIsPreparing] = useState(true);
 
-  // Sync state with props during render (Most efficient pattern to avoid cascading renders)
+  // Sync state with props during render
   const [prevIsShieldActive, setPrevIsShieldActive] = useState(isShieldActive);
   if (isShieldActive !== prevIsShieldActive) {
     setPrevIsShieldActive(isShieldActive);
@@ -29,26 +30,36 @@ export function SmartGuard({ isShieldActive, onRefresh, className }: SmartGuardP
       setIsDismissed(false);
       setIsPreparing(true);
       setShowStatus(true);
-      setCountdown(3);
+      setSafetyTimer(15);
     } else {
       setShowStatus(false);
       setIsPreparing(false);
     }
   }
 
+  // Sync state with isReady prop during render
+  const [prevIsReady, setPrevIsReady] = useState(isReady);
+  if (isReady !== prevIsReady) {
+    setPrevIsReady(isReady);
+    if (isReady) {
+      setIsPreparing(false);
+    }
+  }
+
+  // Safety timeout to ensure the shield doesn't stay forever if no ready message arrives
   useEffect(() => {
-    if (isPreparing && countdown > 0) {
+    if (isPreparing && safetyTimer > 0) {
       const timer = setTimeout(() => {
-        if (countdown === 1) {
+        if (safetyTimer === 1) {
           setIsPreparing(false);
-          setCountdown(0);
+          setSafetyTimer(0);
         } else {
-          setCountdown(prev => prev - 1);
+          setSafetyTimer(prev => prev - 1);
         }
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isPreparing, countdown]);
+  }, [isPreparing, safetyTimer]);
 
   const handleDismiss = () => {
     setIsDismissed(true);
@@ -83,12 +94,12 @@ export function SmartGuard({ isShieldActive, onRefresh, className }: SmartGuardP
               strokeWidth="2"
               fill="transparent"
               strokeDasharray="377"
-              strokeDashoffset={377 - (377 * countdown) / 3}
+              strokeDashoffset={377 - (377 * safetyTimer) / 15}
               className="text-[--flx-cyan] transition-all duration-1000 ease-linear"
             />
           </svg>
-          <span className="absolute font-bebas text-6xl text-white animate-pulse">
-            {countdown > 0 ? countdown : "GO"}
+          <span className="absolute font-bebas text-3xl text-white animate-pulse">
+            {safetyTimer > 0 ? "READYING..." : "GO"}
           </span>
         </div>
 

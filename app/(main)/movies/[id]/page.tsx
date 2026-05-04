@@ -24,11 +24,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   try {
     const movie = await tmdb.movies.detail(Number(id));
+    const ogImage = tmdb.image(movie.backdrop_path, 'original');
+    
     return {
       title: movie.title,
       description: movie.overview?.slice(0, 160),
       openGraph: {
-        images: [tmdb.image(movie.backdrop_path, 'w780')],
+        title: movie.title,
+        description: movie.overview?.slice(0, 160),
+        images: [{
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: movie.title,
+        }],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: movie.title,
+        description: movie.overview?.slice(0, 160),
+        images: [ogImage],
       },
     };
   } catch {

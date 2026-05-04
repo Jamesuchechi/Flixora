@@ -27,10 +27,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   try {
     const show = await tmdb.tv.detail(Number(id));
+    const ogImage = tmdb.image(show.backdrop_path, 'original');
+    
     return {
       title: show.name,
       description: show.overview?.slice(0, 160),
-      openGraph: { images: [tmdb.image(show.backdrop_path, 'w780')] },
+      openGraph: {
+        title: show.name,
+        description: show.overview?.slice(0, 160),
+        images: [{
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: show.name,
+        }],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: show.name,
+        description: show.overview?.slice(0, 160),
+        images: [ogImage],
+      },
     };
   } catch {
     return { title: 'Series Detail' };
