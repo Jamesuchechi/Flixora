@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { CastRow } from '@/components/movie/CastRow';
 import { MovieRow } from '@/components/home/MovieRow';
 import { Star } from 'lucide-react';
-import type { TMDBCastMember, TMDBMovie } from '@/types/tmdb';
+import type { TMDBCastMember, TMDBMovie, TMDBTVShow } from '@/types/tmdb';
 
 interface WatchMetadataTabsProps {
   overview: string;
@@ -14,7 +14,7 @@ interface WatchMetadataTabsProps {
   runtime?: number;
   language?: string;
   cast: TMDBCastMember[];
-  similar: TMDBMovie[];
+  similar: TMDBMovie[] | TMDBTVShow[];
 }
 
 export function WatchMetadataTabs({ overview, genres, director, runtime, language, cast, similar }: WatchMetadataTabsProps) {
