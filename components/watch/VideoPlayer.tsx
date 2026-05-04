@@ -94,6 +94,13 @@ export function VideoPlayer({
 
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+
+  // Computed available modes for fallback logic
+  const availableModes = [
+    P2P_ENABLED && (torrents.length > 0 || torrentLoading) ? 'torrent' : null,
+    activeFreeId ? 'free' : null,
+    'trailer',
+  ].filter(Boolean) as PlayerMode[];
   const [duration, setDuration] = useState(0);
   const [skipSegments, setSkipSegments] = useState<SkipSegment[]>([]);
   const [autoSkipEnabled, setAutoSkipEnabled] = useState(false);
@@ -117,16 +124,31 @@ export function VideoPlayer({
 
     // Fetch Torrents if P2P enabled
     if (P2P_ENABLED && imdbId) {
+      console.log('[P2P] Fetching torrents for:', imdbId);
       import('@/lib/yts').then(async ({ getMovieTorrents }) => {
         setTorrentLoading(true);
-        const { torrents } = await getMovieTorrents(imdbId);
-        if (torrents.length > 0) {
-          setTorrents(torrents);
-          // Auto-select best quality if not already set or not available
-          const has1080 = torrents.some(t => t.quality === '1080p');
-          setSelectedQuality(has1080 ? '1080p' : torrents[0].quality);
+        try {
+          const { torrents: fetched } = await getMovieTorrents(imdbId);
+          console.log(`[P2P] Found ${fetched.length} torrents`);
+          if (fetched.length > 0) {
+            setTorrents(fetched);
+            // Auto-select best quality
+            const has1080 = fetched.some(t => t.quality === '1080p');
+            setSelectedQuality(has1080 ? '1080p' : fetched[0].quality);
+            
+            // If we are currently in trailer mode and haven't manually changed mode, 
+            // auto-upgrade to torrent mode now that it's available
+            const currentUrlMode = new URLSearchParams(window.location.search).get('mode');
+            if (!currentUrlMode || currentUrlMode === 'trailer') {
+              console.log('[P2P] Auto-upgrading to Torrent mode');
+              setMode('torrent');
+            }
+          }
+        } catch (err) {
+          console.error('[P2P] Fetch failed:', err);
+        } finally {
+          setTorrentLoading(false);
         }
-        setTorrentLoading(false);
       });
     }
 
@@ -288,15 +310,25 @@ export function VideoPlayer({
     }
   };
 
-  const handleP2PError = () => {
-    // Re-compute at call time — torrents.length is known now
-    const runtimeModes: PlayerMode[] = [
-      P2P_ENABLED && torrents.length > 0 ? 'torrent' : null,
-      activeFreeId ? 'free' : null,
-      'trailer',
-    ].filter(Boolean) as PlayerMode[];
-    const idx = runtimeModes.indexOf('torrent');
-    const next = runtimeModes[idx + 1] ?? 'trailer';
+  const handleFreeError = (errorCode: number) => {
+    console.error('Free stream failed:', errorCode);
+    const index = availableModes.indexOf('free');
+    const next = availableModes[index + 1] || 'trailer';
+    if (next === mode) return;
+    
+    toast({ 
+      message: `Free stream restricted — switching to ${next} mode`, 
+      type: 'info' 
+    });
+    handleModeChange(next, true);
+  };
+
+  const handleP2PError = (err: string) => {
+    console.error('P2P Error:', err);
+    const index = availableModes.indexOf('torrent');
+    const next = availableModes[index + 1] || 'trailer';
+    if (next === mode) return;
+
     toast({ message: `P2P failed — switching to ${next} mode`, type: 'info' });
     handleModeChange(next, true);
   };
@@ -364,6 +396,7 @@ export function VideoPlayer({
               startTime={typeof window !== 'undefined' ? Number(new URLSearchParams(window.location.search).get('t')) || 0 : 0}
               onProgress={handleProgress}
               onBuffering={setIsBuffering}
+              onError={handleFreeError}
             />
             <div className="absolute bottom-6 left-6 z-20"><ReportButton videoId={activeFreeId} title={title} /></div>
           </div>

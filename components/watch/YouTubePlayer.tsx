@@ -12,6 +12,7 @@ interface YouTubePlayerProps {
   onProgress?: (seconds: number, duration: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
   onEnd?: () => void;
+  onError?: (errorCode: number) => void;
 }
 
 interface YouTubePlayerInstance {
@@ -34,7 +35,8 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
   startTime = 0,
   onProgress, 
   onBuffering,
-  onEnd 
+  onEnd,
+  onError: onPlayerError
 }, ref) => {
   const [player, setPlayer] = useState<YouTubePlayerInstance | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -88,6 +90,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
     } else {
       setError('An error occurred while trying to play this video.');
     }
+    onPlayerError?.(event.data);
     setIsPlaying(false);
   };
 

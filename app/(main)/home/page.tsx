@@ -31,6 +31,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     spanishMovies,
     frenchMovies,
     bollywood,
+    nollywood,
     nowPlaying
   ] = await Promise.all([
     tmdb.trending.all(),
@@ -43,6 +44,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     tmdb.discover.movies({ with_original_language: 'es' }),
     tmdb.discover.movies({ with_original_language: 'fr' }),
     tmdb.discover.movies({ with_original_language: 'hi' }),
+    tmdb.discover.movies({ with_origin_country: 'NG' }),
     tmdb.movies.nowPlaying(),
   ]);
 
@@ -124,6 +126,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
       <div className="h-px bg-white/5 mx-10" />
       <MovieRow title="Bollywood Hits" items={bollywood.results.slice(0, 10)} pill={{ label: "BOLLYWOOD", variant: "new" }} />
+
+      <div className="h-px bg-white/5 mx-10" />
+      <MovieRow title="Nollywood Excellence" items={nollywood.results.slice(0, 10)} pill={{ label: "NOLLYWOOD", variant: "hot" }} />
 
       <div className="h-px bg-white/5 mx-10" />
       <MovieRow title="Recently Added" items={nowPlaying.results.slice(0, 10)} pill={{ label: "LATEST", variant: "new" }} />
