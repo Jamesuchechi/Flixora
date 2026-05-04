@@ -73,7 +73,7 @@ export function ReportButton({ videoId, title, className }: ReportButtonProps) {
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute bottom-full right-0 mb-4 w-64 bg-[#1a1429] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+              className="absolute bottom-full left-0 mb-4 w-64 bg-[#1a1429] border border-white/10 rounded-2xl shadow-2xl z-60 overflow-hidden"
             >
               <div className="p-4 border-b border-white/5">
                 <h4 className="text-[10px] font-black uppercase tracking-[2px] text-white">Report Content</h4>

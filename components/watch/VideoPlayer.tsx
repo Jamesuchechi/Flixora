@@ -403,7 +403,7 @@ export function VideoPlayer({
               onBuffering={setIsBuffering}
               onError={handleFreeError}
             />
-            <div className="absolute bottom-6 left-6 z-20"><ReportButton videoId={activeFreeId} title={title} /></div>
+            <div className="absolute bottom-6 left-6 z-30"><ReportButton videoId={activeFreeId} title={title} /></div>
           </div>
         ) : (
           <div className="relative w-full h-full bg-black">
