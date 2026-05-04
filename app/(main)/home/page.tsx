@@ -135,9 +135,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <MovieRow 
         title="YouTube Global Classics" 
         items={[
-          { id: 430040, title: 'Big Buck Bunny', poster_path: '/nGeXN3fO4X30uM8U32eLdpxU43y.jpg', media_type: 'movie', vote_average: 7.2 },
-          { id: 290157, title: 'Sita Sings the Blues', poster_path: '/c4hC6lDNR0G68Xh9uVb7rXvFf7T.jpg', media_type: 'movie', vote_average: 7.1 },
-          { id: 310569, title: 'The Prophet', poster_path: '/2mR0yWdGqCqR5R6v1WkPq6fF8XU.jpg', media_type: 'movie', vote_average: 7.4 }
+          { id: 430040, title: 'Big Buck Bunny', poster_path: '/nGeXN3fO4X30uM8U32eLdpxU43y.jpg', media_type: 'movie', vote_average: 7.2, imdb_id: 'tt1254201' },
+          { id: 290157, title: 'Sita Sings the Blues', poster_path: '/c4hC6lDNR0G68Xh9uVb7rXvFf7T.jpg', media_type: 'movie', vote_average: 7.1, imdb_id: 'tt1148292' },
+          { id: 310569, title: 'The Prophet', poster_path: '/2mR0yWdGqCqR5R6v1WkPq6fF8XU.jpg', media_type: 'movie', vote_average: 7.4, imdb_id: 'tt2645152' }
         ] as AnyMedia[]} 
         pill={{ label: "TEST", variant: "new" }} 
       />

@@ -64,6 +64,8 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
       iv_load_policy: 3,
       disablekb: 1, // Disable keyboard so we can handle it
       start: startTime, // Initial start time if iframe reloads
+      enablejsapi: 1,
+      origin: typeof window !== 'undefined' ? window.location.origin : '',
     },
   };
 

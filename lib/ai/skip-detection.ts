@@ -13,45 +13,17 @@ export interface SkipSegment {
 }
 
 /**
- * Extracts chapters from YouTube video description
+ * Extracts chapters from YouTube video description.
+ * This is now a safe stub on the client to prevent 400 errors.
  */
-async function getYoutubeChapters(videoId: string): Promise<SkipSegment[]> {
-  try {
-    const tmdbKey = process.env.TMDB_API_KEY; // Reusing key for simplicity or use YT key
-    const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${process.env.YOUTUBE_API_KEY || tmdbKey}`);
-    const data = await res.json();
-    const description = data.items?.[0]?.snippet?.description || '';
-    
-    const chapters: SkipSegment[] = [];
-    const lines = description.split('\n');
-    const timestampRegex = /(\d{1,2}:)?\d{1,2}:\d{2}/;
-
-    lines.forEach((line: string) => {
-      const match = line.match(timestampRegex);
-      if (match) {
-        const timeParts = match[0].split(':').map(Number);
-        const seconds = timeParts.length === 3 
-          ? timeParts[0] * 3600 + timeParts[1] * 60 + timeParts[2]
-          : timeParts[0] * 60 + timeParts[1];
-        
-        const label = line.toLowerCase();
-        if (label.includes('intro') || label.includes('opening')) {
-          chapters.push({ type: 'op', startTime: seconds, endTime: seconds + 90 }); // Assume 90s if no end
-        } else if (label.includes('outro') || label.includes('credits')) {
-          chapters.push({ type: 'ed', startTime: seconds, endTime: seconds + 300 });
-        }
-      }
-    });
-
-    return chapters;
-  } catch {
-    return [];
-  }
+async function getYoutubeChapters(): Promise<SkipSegment[]>{
+  
+  return [];
 }
 
 export async function getSkipSegments(tmdbId: number, mediaType: 'movie' | 'tv', season?: number, episode?: number, youtubeId?: string): Promise<SkipSegment[]> {
   if (mediaType === 'movie') {
-    if (youtubeId) return await getYoutubeChapters(youtubeId);
+    if (youtubeId) return await getYoutubeChapters();
     return [];
   }
   
