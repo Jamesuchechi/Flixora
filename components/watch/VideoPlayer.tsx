@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Play, SkipForward, Tv, AlertCircle, Monitor, Maximize2, Volume2, Info, Loader2, ExternalLink } from 'lucide-react';
+import { Play, SkipForward, AlertCircle, Monitor, Maximize2, Volume2, Info, Loader2, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { YouTubePlayer, YouTubePlayerRef } from './YouTubePlayer';
 import { updateWatchProgress } from '@/lib/supabase/actions/progress';
@@ -47,7 +47,7 @@ interface VideoPlayerProps {
   imdbId?: string;
 }
 
-type PlayerMode = 'trailer' | 'free' | 'torrent';
+type PlayerMode = 'free' | 'torrent';
 
 // ── No-content placeholder shown when nothing can play ──────────────────────
 function NoContentPlaceholder({ title }: { title: string }) {
@@ -109,7 +109,6 @@ export function VideoPlayer({
     const urlMode = searchParams.get('mode') as PlayerMode | null;
     if (urlMode === 'torrent' && P2P_ENABLED && imdbId) return 'torrent';
     if (urlMode === 'free' && activeFreeId) return 'free';
-    if (urlMode === 'trailer') return 'trailer';
 
     // Stored preference is second priority
     const stored = typeof window !== 'undefined'
@@ -117,15 +116,12 @@ export function VideoPlayer({
       : null;
     if (stored === 'torrent' && P2P_ENABLED && imdbId) return 'torrent';
     if (stored === 'free' && activeFreeId) return 'free';
-    if (stored === 'trailer') return 'trailer';
 
     // Auto-select best available:
     // 1. Torrent (native, best quality) — only if P2P is enabled
     if (P2P_ENABLED && imdbId) return 'torrent';
     // 2. Free YouTube full film — only if available
-    if (activeFreeId) return 'free';
-    // 3. Trailer — always available if youtubeId is set
-    return 'trailer';
+    return 'free';
   };
 
   const [mode, setMode] = useState<PlayerMode>(() => getDefaultMode());
@@ -140,7 +136,6 @@ export function VideoPlayer({
   const availableModes = [
     P2P_ENABLED && (torrents.length > 0 || torrentLoading) ? 'torrent' : null,
     activeFreeId ? 'free' : null,
-    youtubeId ? 'trailer' : null,
   ].filter(Boolean) as PlayerMode[];
 
   const [duration, setDuration] = useState(0);
@@ -176,7 +171,7 @@ export function VideoPlayer({
             const has1080 = fetched.some(t => t.quality === '1080p');
             setSelectedQuality(has1080 ? '1080p' : fetched[0].quality);
             const currentUrlMode = new URLSearchParams(window.location.search).get('mode');
-            if (!currentUrlMode || currentUrlMode === 'trailer') {
+            if (!currentUrlMode) {
               setMode('torrent');
             }
           }
@@ -273,37 +268,29 @@ export function VideoPlayer({
     }
   };
 
-  const handleModeChange = (newMode: PlayerMode, silent = false) => {
+  const handleModeChange = (newMode: PlayerMode) => {
     setMode(newMode);
     setFreeStreamFailed(false);
     if (typeof window !== 'undefined') localStorage.setItem(MODE_STORAGE_KEY, newMode);
     const params = new URLSearchParams(searchParams.toString());
     params.set('mode', newMode);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    if (!silent && newMode === 'trailer') toast({ message: 'Switching to trailer mode…', type: 'info' });
   };
 
   const handleFreeError = (errorCode: number) => {
     console.error('Free stream failed:', errorCode);
     setFreeStreamFailed(true);
-    // Don't auto-switch — show the error state with options
-    // If user wants trailer they can click the mode button
-    if (!silent) {
-      toast({ message: 'This video is restricted or unavailable. Try the trailer instead.', type: 'info' });
-    }
+    toast({ message: 'This video is restricted or unavailable. Try searching for it on a streaming service.', type: 'info' });
   };
 
-  // Silence TS unused variable warning
-  const silent = false;
-  void silent;
 
   const handleP2PError = (err: string) => {
     console.error('P2P Error:', err);
     const index = availableModes.indexOf('torrent');
-    const next = availableModes[index + 1] || 'trailer';
-    if (next === mode) return;
+    const next = availableModes[index + 1];
+    if (!next || next === mode) return;
     toast({ message: `P2P failed — switching to ${next} mode`, type: 'info' });
-    handleModeChange(next, true);
+    handleModeChange(next);
   };
 
   if (isPartyEnded) {
@@ -352,19 +339,10 @@ export function VideoPlayer({
           <div className="space-y-2 max-w-sm">
             <h3 className="text-white font-black uppercase tracking-wider">Video Restricted</h3>
             <p className="text-white/40 text-sm leading-relaxed">
-              This video is restricted in your region or unavailable for embedding. Try watching the trailer or find it on a streaming service.
+              This video is restricted in your region or unavailable for embedding. Find it on a streaming service.
             </p>
           </div>
           <div className="flex flex-col gap-3 w-full max-w-xs">
-            {youtubeId && (
-              <button
-                onClick={() => handleModeChange('trailer')}
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-[--flx-purple] text-white rounded-xl font-black text-[11px] uppercase tracking-widest hover:scale-105 transition-all"
-              >
-                <Play size={14} fill="white" />
-                Watch Trailer Instead
-              </button>
-            )}
             <a
               href={`https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}`}
               target="_blank"
@@ -375,15 +353,6 @@ export function VideoPlayer({
               Find on JustWatch
             </a>
           </div>
-        </div>
-      );
-    }
-
-    // Trailer mode
-    if (youtubeId) {
-      return (
-        <div className="relative w-full h-full bg-black">
-          <YouTubePlayer videoId={youtubeId} title={title} />
         </div>
       );
     }
@@ -525,18 +494,7 @@ export function VideoPlayer({
                   )}
                 >
                   <div className="w-2 h-2 rounded-full bg-current animate-pulse" />
-                  WATCH FREE
-                </button>
-              )}
-              {youtubeId && (
-                <button
-                  onClick={() => handleModeChange('trailer')}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
-                    mode === 'trailer' ? "bg-[--flx-purple] text-white shadow-lg" : "text-white/60 hover:text-white"
-                  )}
-                >
-                  <Tv size={12} />TRAILER
+                  YOUTUBE
                 </button>
               )}
             </div>
