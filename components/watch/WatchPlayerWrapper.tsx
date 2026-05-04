@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
 const VideoPlayer = dynamic(() => import('@/components/watch/VideoPlayer').then(mod => mod.VideoPlayer), {
@@ -25,5 +26,9 @@ interface WatchPlayerWrapperProps {
 }
 
 export function WatchPlayerWrapper(props: WatchPlayerWrapperProps) {
-  return <VideoPlayer {...props} />;
+  return (
+    <Suspense fallback={<div className="aspect-video w-full bg-white/5 animate-pulse rounded-2xl border border-white/10" />}>
+      <VideoPlayer {...props} />
+    </Suspense>
+  );
 }

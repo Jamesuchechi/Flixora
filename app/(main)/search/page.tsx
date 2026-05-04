@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -38,7 +39,9 @@ export default async function SearchPage({ searchParams }: Props) {
 
   return (
     <div className="min-h-screen px-6 md:px-10 py-24 bg-[--flx-bg]">
-      <SearchInput />
+      <Suspense fallback={<div className="h-12 w-full bg-white/5 animate-pulse rounded-2xl" />}>
+        <SearchInput />
+      </Suspense>
 
       {!q ? (
         <DiscoveryUI />

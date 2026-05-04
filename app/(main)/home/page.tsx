@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { tmdb } from "@/lib/tmdb";
 import { HeroBanner } from "@/components/home/HeroBanner";
@@ -71,7 +72,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <ContinueWatching />
       
       <div className="h-px bg-white/5 mx-10" />
-      <MoodStrip />
+      <Suspense fallback={<div className="h-20" />}>
+        <MoodStrip />
+      </Suspense>
       
       <div className="h-px bg-white/5 mx-10" />
       <div className="bg-linear-to-r from-[--flx-purple]/5 via-transparent to-[--flx-cyan]/5 border-y border-white/5 py-2">
