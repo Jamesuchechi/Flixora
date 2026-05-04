@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { EndPartyScreen } from '../social/EndPartyScreen';
 import dynamic from 'next/dynamic';
-import type { YTSTorrent } from '@/lib/yts';
+import { getMovieTorrents, type YTSTorrent } from '@/lib/yts';
 import { useToast } from '@/hooks/useToast';
 
 const P2P_ENABLED = process.env.NEXT_PUBLIC_ENABLE_P2P === 'true';
@@ -158,11 +158,9 @@ export function VideoPlayer({
       ]);
       setSkipSegments(segments);
       if (prefs?.auto_skip_intros) setAutoSkipEnabled(true);
-    }
-    loadInitialData();
 
-    if (P2P_ENABLED && imdbId) {
-      import('@/lib/yts').then(async ({ getMovieTorrents }) => {
+      // Load torrents if enabled
+      if (P2P_ENABLED && imdbId) {
         setTorrentLoading(true);
         try {
           const { torrents: fetched } = await getMovieTorrents(imdbId);
@@ -180,8 +178,9 @@ export function VideoPlayer({
         } finally {
           setTorrentLoading(false);
         }
-      });
+      }
     }
+    loadInitialData();
 
     const timer = setTimeout(() => setShowShortcuts(false), 5000);
     return () => clearTimeout(timer);

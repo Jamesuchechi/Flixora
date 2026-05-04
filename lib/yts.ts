@@ -1,6 +1,8 @@
+'use server';
+
 /**
  * YTS API client for fetching torrent metadata by IMDb ID.
- * This should only be called from client components/actions.
+ * This executes on the server to avoid CORS issues.
  */
 
 const YTS_BASE = 'https://yts.mx/api/v2';
