@@ -38,12 +38,18 @@ export const metadata: Metadata = {
 };
 
 import { PWARegistration } from '@/components/layout/PWARegistration';
+import { PageWipe } from '@/components/transitions/PageWipe';
+import { BackGesture } from '@/components/transitions/BackGesture';
+import { ConnectionToast } from '@/components/shared/ConnectionToast';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${outfit.variable} ${bebasNeue.variable}`}>
-      <body className="antialiased">
+      <body className="antialiased overflow-x-hidden">
         <PWARegistration />
+        <PageWipe />
+        <BackGesture />
+        <ConnectionToast />
         {children}
       </body>
     </html>

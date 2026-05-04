@@ -31,9 +31,12 @@ export function UserMenu() {
     return (
       <Link 
         href="/login" 
-        className="text-xs font-bold uppercase tracking-widest text-[--flx-text-1] hover:text-[--flx-cyan] transition-colors"
+        className="relative group overflow-hidden"
       >
-        Sign In
+        <span className="text-xs font-black uppercase tracking-[2px] text-[--flx-cyan] transition-all duration-300 group-hover:text-white group-hover:drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]">
+          Sign In
+        </span>
+        <div className="absolute -bottom-1 left-0 w-0 h-[2px] bg-[--flx-cyan] transition-all duration-300 group-hover:w-full shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
       </Link>
     );
   }

@@ -152,3 +152,25 @@ export async function updateProfile(_: AuthState, formData: FormData): Promise<A
   revalidatePath('/profile');
   return { success: true };
 }
+
+/**
+ * Delete the user's profile and sign them out.
+ * Note: Complete account deletion (from auth.users) requires the Admin API.
+ */
+export async function deleteAccount() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: 'Not authenticated' };
+
+  // Delete profile (cascading deletes should handle other tables if configured)
+  const { error } = await supabase
+    .from('profiles')
+    .delete()
+    .eq('id', user.id);
+
+  if (error) return { error: error.message };
+
+  await signOut();
+  return { success: true };
+}

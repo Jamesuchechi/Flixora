@@ -7,8 +7,9 @@ import { formatRuntime, getYear } from '@/lib/utils';
 import { CastRow } from '@/components/movie/CastRow';
 import { TrailerButton } from '@/components/movie/TrailerButton';
 import { WatchlistButton } from '@/components/movie/WatchlistButton';
+import { ShareButton } from '@/components/movie/ShareButton';
 import { MovieRow } from '@/components/home/MovieRow';
-import { Badge } from '@/components/ui/Badge';
+import { LandscapeCard } from '@/components/movie/LandscapeCard';
 import { getWatchProgress } from '@/lib/supabase/actions/progress';
 import { HeroTrailer } from '@/components/movie/HeroTrailer';
 import { TrailerInsights } from '@/components/movie/TrailerInsights';
@@ -57,8 +58,20 @@ export default async function MovieDetailPage({ params, searchParams }: Props) {
   const director = crew.find((c) => c.job === 'Director');
   const videos   = ((videosRaw as { results?: TMDBVideo[] } | null)?.results ?? []) as TMDBVideo[];
 
+  // Fetch director movies if available
+  const directorMovies = director 
+    ? await tmdb.discover.movies({ with_crew: director.id.toString() }).catch(() => ({ results: [] }))
+    : { results: [] };
+
   const backdropUrl = tmdb.image(movie.backdrop_path, 'original');
   const posterUrl   = tmdb.image(movie.poster_path, 'w500');
+
+  // Ambient glow color approximation
+  const isAction = movie.genres?.some(g => g.name === 'Action');
+  const isHorror = movie.genres?.some(g => g.name === 'Horror');
+  const glowColor = movie.vote_average > 7.5 ? 'bg-purple-500' : isAction ? 'bg-orange-500' : isHorror ? 'bg-red-500' : 'bg-cyan-500';
+
+  const formattedRatings = new Intl.NumberFormat('en-US', { notation: 'compact' }).format(movie.vote_count);
 
   return (
     <div className="min-h-screen pb-20">
@@ -84,58 +97,69 @@ export default async function MovieDetailPage({ params, searchParams }: Props) {
       />
 
       {/* Hero Section */}
-      <section className="relative h-[75vh] min-h-[600px] w-full overflow-hidden">
+      <section className="relative h-[80vh] min-h-[700px] w-full overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <Image src={backdropUrl} alt={movie.title} fill className="object-cover object-top opacity-40 scale-105 animate-aurora" priority sizes="100vw" />
+          <Image src={backdropUrl} alt={movie.title} fill className="object-cover object-top opacity-50 scale-105 animate-aurora" priority sizes="100vw" />
           <HeroTrailer videos={videos} title={movie.title} />
           <div className="absolute inset-0 bg-linear-to-r from-[--flx-bg] via-[--flx-bg]/60 to-transparent" />
           <div className="absolute inset-0 bg-linear-to-t from-[--flx-bg] via-transparent to-[--flx-bg]/40" />
         </div>
 
         <div className="relative z-10 container mx-auto h-full flex items-end px-6 md:px-12 pb-16">
-          <div className="flex flex-col lg:flex-row items-end gap-10 w-full animate-fade-up">
-            <div className="hidden lg:block shrink-0 relative w-[240px] h-[360px] rounded-[24px] overflow-hidden shadow-2xl border border-white/10 group">
-              <Image src={posterUrl} alt={movie.title} fill className="object-cover transition-transform duration-700 group-hover:scale-105" sizes="240px" />
+          <div className="flex flex-col lg:flex-row items-center lg:items-end gap-12 w-full animate-fade-up">
+            {/* Poster with Glow & Reflection */}
+            <div className="hidden lg:block shrink-0 relative group">
+              {/* Ambient Glow */}
+              <div className={`absolute -inset-10 ${glowColor} opacity-20 blur-[100px] rounded-full pointer-events-none group-hover:opacity-30 transition-opacity duration-1000`} />
+              
+              <div className="relative w-[280px] h-[420px] rounded-[32px] overflow-hidden shadow-2xl border border-white/10 group z-10">
+                <Image src={posterUrl} alt={movie.title} fill className="object-cover transition-transform duration-1000 group-hover:scale-105" sizes="280px" />
+              </div>
+
+              {/* Reflection */}
+              <div className="absolute top-[420px] left-0 w-[280px] h-[200px] pointer-events-none select-none opacity-20 scale-y-[-1] blur-[2px]">
+                <Image src={posterUrl} alt="" fill className="object-cover" sizes="280px" />
+                <div className="absolute inset-0 bg-linear-to-t from-[--flx-bg] to-transparent" />
+              </div>
             </div>
 
-            <div className="flex-1 space-y-6 max-w-3xl">
-              <Link href="/" className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[3px] font-bold text-[--flx-text-3] hover:text-[--flx-cyan] transition-colors group">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="group-hover:-translate-x-1 transition-transform">
-                  <path d="m15 18-6-6 6-6" />
-                </svg>
-                Explore Movies
-              </Link>
-
-              <div className="space-y-3">
-                <h1 className="font-bebas text-6xl md:text-8xl leading-[0.9] tracking-tight text-[--flx-text-1] drop-shadow-2xl">{movie.title}</h1>
-                {movie.tagline && <p className="text-lg text-[--flx-cyan]/70 font-outfit italic font-light">&quot;{movie.tagline}&quot;</p>}
+            <div className="flex-1 space-y-8 max-w-4xl text-center lg:text-left">
+              <div className="space-y-4">
+                <h1 className="font-bebas text-7xl md:text-9xl leading-[0.85] tracking-tight text-[--flx-text-1] drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]">{movie.title}</h1>
+                {movie.tagline && <p className="text-xl text-[--flx-cyan]/80 font-outfit italic font-light tracking-wide">&quot;{movie.tagline}&quot;</p>}
               </div>
 
-              <div className="flex items-center gap-4 text-xs font-medium text-[--flx-text-2] flex-wrap">
-                <div className="flex items-center gap-1.5 text-[--flx-gold]">
-                  <span className="text-sm">★</span>
-                  <span className="font-bold">{movie.vote_average.toFixed(1)}</span>
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 pt-2">
+                <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 shadow-xl">
+                  <span className="text-[--flx-gold] text-3xl font-black drop-shadow-[0_0_10px_rgba(251,191,36,0.4)]">★ {movie.vote_average.toFixed(1)}</span>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-[2px] font-black text-[--flx-text-3]">Rating</span>
+                    <span className="text-[11px] font-bold text-white/60">{formattedRatings} ratings</span>
+                  </div>
                 </div>
-                <span className="w-1 h-1 rounded-full bg-white/10" />
-                <span>{getYear(movie.release_date)}</span>
-                <span className="w-1 h-1 rounded-full bg-white/10" />
-                <span>{formatRuntime(movie.runtime)}</span>
-                <span className="w-1 h-1 rounded-full bg-white/10" />
-                <Badge variant="muted" className="border-white/5 bg-white/5 uppercase tracking-widest px-2 py-0.5">{movie.original_language}</Badge>
+
+                <div className="flex flex-col gap-1 items-start">
+                   <div className="flex items-center gap-3 text-sm font-black text-white/40 uppercase tracking-widest">
+                    <span>{getYear(movie.release_date)}</span>
+                    <span className="w-1 h-1 rounded-full bg-white/20" />
+                    <span>{formatRuntime(movie.runtime)}</span>
+                    <span className="w-1 h-1 rounded-full bg-white/20" />
+                    <span className="text-[--flx-cyan]">{movie.original_language?.toUpperCase()}</span>
+                   </div>
+                   <div className="flex gap-2.5 pt-1">
+                    {(movie.genres ?? []).slice(0, 3).map((g) => (
+                      <span key={g.id} className="text-[10px] font-black uppercase tracking-[2px] text-white/30">{g.name}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              <div className="flex gap-2.5 flex-wrap">
-                {(movie.genres ?? []).map((g) => (
-                  <Badge key={g.id} variant="purple" className="px-4 py-1.5 rounded-xl border-[--flx-purple]/20 bg-[--flx-purple]/10 text-violet-200">{g.name}</Badge>
-                ))}
-              </div>
+              <p className="text-lg leading-relaxed text-[--flx-text-1]/80 font-medium max-w-2xl line-clamp-3 lg:line-clamp-none">{movie.overview}</p>
 
-              <p className="text-[15px] leading-relaxed text-[--flx-text-1]/70 font-light max-w-2xl">{movie.overview}</p>
-
-              <div className="flex items-center gap-4 flex-wrap pt-4">
-                <Link href={`/watch/${movie.id}?type=movie${mode === 'free' ? '&mode=free' : ''}`} className="flex items-center gap-3 bg-[--flx-purple] hover:bg-[--flx-purple-d] text-white font-bold text-sm px-10 py-4 rounded-2xl transition-all hover:-translate-y-1 shadow-xl shadow-[--flx-purple]/20 active:scale-95">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                  {progress && progress.progress > 0 ? `Resume at ${progress.progress}%` : 'Play Now'}
+              <div className="flex items-center justify-center lg:justify-start gap-5 flex-wrap pt-4">
+                <Link href={`/watch/${movie.id}?type=movie${mode === 'free' ? '&mode=free' : ''}`} className="group flex items-center gap-4 bg-linear-to-br from-[--flx-purple] to-[--flx-purple-d] text-white font-black text-sm uppercase tracking-[2px] px-12 py-5 rounded-[20px] transition-all hover:-translate-y-1 shadow-2xl shadow-[--flx-purple]/30 active:scale-95">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="group-hover:scale-110 transition-transform"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                  {progress && progress.progress > 0 ? `Resume at ${progress.progress}%` : 'Play Title'}
                 </Link>
                 <TrailerButton videos={videos} title={movie.title} />
                 <WatchlistButton id={movie.id} mediaType="movie" />
@@ -145,61 +169,98 @@ export default async function MovieDetailPage({ params, searchParams }: Props) {
         </div>
       </section>
 
-      <main className="container mx-auto px-6 md:px-12 py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-          <div className="lg:col-span-8 space-y-16">
+      <main className="container mx-auto px-6 md:px-12 py-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-20">
+          <div className="lg:col-span-8 space-y-20">
             {cast.length > 0 && <CastRow cast={cast} />}
+
+            {/* More from Director */}
+            {directorMovies.results.length > 0 && (
+              <div className="animate-fade-up">
+                <MovieRow 
+                  title={`More from ${director?.name}`} 
+                  items={directorMovies.results.filter(m => m.id !== movieId).slice(0, 10)} 
+                  className="px-0!"
+                />
+              </div>
+            )}
+
             <TrailerInsights 
               tmdbId={movie.id} 
               title={movie.title} 
               overview={movie.overview || ''} 
               genres={(movie.genres || []).map(g => g.name)} 
             />
-            {director && (
-              <div className="space-y-6 animate-fade-up">
-                <h2 className="font-bebas text-2xl tracking-[3px] text-[--flx-text-1] uppercase">Director</h2>
-                <div className="flex items-center gap-5 group cursor-default">
-                  <div className="w-14 h-14 rounded-full bg-linear-to-br from-[--flx-surface-2] to-[--flx-surface-3] border border-white/5 flex items-center justify-center text-[--flx-text-3] group-hover:border-[--flx-cyan]/30 transition-all duration-500 shadow-xl">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>
-                  </div>
-                  <div>
-                    <p className="text-base font-semibold text-[--flx-text-1] group-hover:text-[--flx-cyan] transition-colors">{director.name}</p>
-                    <p className="text-xs uppercase tracking-widest text-[--flx-text-3] font-bold">Director</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="lg:col-span-4">
-            <aside className="bg-linear-to-b from-[--flx-surface-1] to-[--flx-surface-2] border border-white/5 rounded-[24px] p-8 space-y-6 shadow-2xl backdrop-blur-sm">
-              <h2 className="font-bebas text-xl tracking-[3px] text-[--flx-text-1] uppercase border-b border-white/5 pb-4">Details</h2>
-              <div className="space-y-5">
+            <aside className="sticky top-24 bg-linear-to-b from-[--flx-surface-1] to-[--flx-surface-2] border border-white/5 rounded-[32px] p-10 space-y-8 shadow-[inset_0_0_40px_rgba(139,92,246,0.05)] backdrop-blur-xl">
+              <h2 className="font-bebas text-2xl tracking-[4px] text-[--flx-text-1] uppercase border-b border-white/5 pb-6">Information</h2>
+              
+              <div className="grid grid-cols-2 gap-8">
                 {[
                   { label: 'Status', value: movie.status },
-                  { label: 'Released', value: movie.release_date },
                   { label: 'Runtime', value: formatRuntime(movie.runtime) },
-                  { label: 'Language', value: movie.original_language?.toUpperCase() },
                   { label: 'Budget', value: movie.budget ? `$${(movie.budget / 1_000_000).toFixed(1)}M` : 'N/A' },
                   { label: 'Revenue', value: movie.revenue ? `$${(movie.revenue / 1_000_000).toFixed(1)}M` : 'N/A' },
                 ].map(({ label, value }) => (
-                  <div key={label} className="flex flex-col gap-1.5 pb-4 border-b border-white/5 last:border-0 last:pb-0">
-                    <span className="text-[10px] uppercase tracking-widest font-bold text-[--flx-text-3]">{label}</span>
-                    <span className="text-sm font-medium text-[--flx-text-2]">{value || 'N/A'}</span>
+                  <div key={label} className="flex flex-col gap-2">
+                    <span className="text-[10px] uppercase tracking-widest font-black text-[--flx-text-3]">{label}</span>
+                    <span className="text-sm font-bold text-[--flx-text-1]">{value || 'N/A'}</span>
                   </div>
                 ))}
+              </div>
+
+              <div className="space-y-4 pt-4 border-t border-white/5">
+                <ShareButton />
+                {movie.imdb_id && (
+                  <Link 
+                    href={`https://www.imdb.com/title/${movie.imdb_id}`}
+                    target="_blank"
+                    className="w-full flex items-center justify-center gap-3 px-6 py-3 rounded-xl border border-white/10 bg-black/20 text-[--flx-gold] font-black text-[10px] uppercase tracking-[2px] hover:bg-[--flx-gold] hover:text-black transition-all"
+                  >
+                    View on IMDb
+                  </Link>
+                )}
               </div>
             </aside>
           </div>
         </div>
 
         {similar.results.length > 0 && (
-          <div className="pt-20">
-            <div className="h-px bg-linear-to-r from-transparent via-white/5 to-transparent mb-12" />
-            <MovieRow title="More Like This" items={similar.results.slice(0, 10)} />
+          <div className="pt-24 space-y-12">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bebas text-4xl tracking-[4px] text-[--flx-text-1]">More Like This</h2>
+              <div className="h-1 flex-1 mx-10 bg-white/5 rounded-full" />
+            </div>
+
+            {/* Hybrid Layout: First 6 as Grid, rest as Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {similar.results.slice(0, 6).map((item) => (
+                <LandscapeCard 
+                  key={item.id}
+                  id={item.id}
+                  title={item.title}
+                  backdropPath={item.backdrop_path}
+                  rating={item.vote_average}
+                  releaseDate={item.release_date}
+                />
+              ))}
+            </div>
+
+            {similar.results.length > 6 && (
+              <div className="pt-12">
+                <MovieRow 
+                  title="Even More Suggestions" 
+                  items={similar.results.slice(6, 16)} 
+                  className="px-0!"
+                />
+              </div>
+            )}
           </div>
         )}
       </main>
     </div>
   );
 }
+

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, ShieldAlert, RefreshCw, Clapperboard } from 'lucide-react';
+import { Shield, ShieldAlert, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SmartGuardProps {
@@ -16,11 +16,12 @@ interface SmartGuardProps {
  * with a premium "Preparing Cinema" UI.
  */
 export function SmartGuard({ isShieldActive, onRefresh, className }: SmartGuardProps) {
+  const [countdown, setCountdown] = useState(3);
   const [isDismissed, setIsDismissed] = useState(false);
   const [showStatus, setShowStatus] = useState(false);
   const [isPreparing, setIsPreparing] = useState(true);
 
-  // Sync state with props during render to avoid cascading effects
+  // Sync state with props during render (Most efficient pattern to avoid cascading renders)
   const [prevIsShieldActive, setPrevIsShieldActive] = useState(isShieldActive);
   if (isShieldActive !== prevIsShieldActive) {
     setPrevIsShieldActive(isShieldActive);
@@ -28,6 +29,7 @@ export function SmartGuard({ isShieldActive, onRefresh, className }: SmartGuardP
       setIsDismissed(false);
       setIsPreparing(true);
       setShowStatus(true);
+      setCountdown(3);
     } else {
       setShowStatus(false);
       setIsPreparing(false);
@@ -35,13 +37,18 @@ export function SmartGuard({ isShieldActive, onRefresh, className }: SmartGuardP
   }
 
   useEffect(() => {
-    if (isShieldActive && !isDismissed) {
+    if (isPreparing && countdown > 0) {
       const timer = setTimeout(() => {
-        setIsPreparing(false);
-      }, 4000); 
+        if (countdown === 1) {
+          setIsPreparing(false);
+          setCountdown(0);
+        } else {
+          setCountdown(prev => prev - 1);
+        }
+      }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isShieldActive, isDismissed]);
+  }, [isPreparing, countdown]);
 
   const handleDismiss = () => {
     setIsDismissed(true);
@@ -51,26 +58,43 @@ export function SmartGuard({ isShieldActive, onRefresh, className }: SmartGuardP
   return (
     <div className={cn("absolute inset-0 z-50 pointer-events-none transition-all duration-700", className)}>
       
-      {/* ── THE CINEMA SHIELD ── 
-          This layer visually masks the 3rd party player while it loads background ads
-          and initializes the stream.
-      */}
+      {/* ── THE CINEMA SHIELD ── */}
       <div className={cn(
         "absolute inset-0 bg-[#090514] flex flex-col items-center justify-center transition-opacity duration-1000 pointer-events-auto",
         isPreparing ? "opacity-100" : "opacity-0 pointer-events-none"
       )}>
-        <div className="relative">
-          <div className="absolute inset-0 bg-[--flx-cyan]/20 blur-3xl rounded-full animate-pulse" />
-          <Clapperboard size={48} className="text-[--flx-cyan] relative animate-bounce" />
+        <div className="relative flex items-center justify-center">
+          {/* Animated Circle Timer */}
+          <svg className="w-32 h-32 -rotate-90">
+            <circle
+              cx="64"
+              cy="64"
+              r="60"
+              stroke="currentColor"
+              strokeWidth="2"
+              fill="transparent"
+              className="text-white/5"
+            />
+            <circle
+              cx="64"
+              cy="64"
+              r="60"
+              stroke="currentColor"
+              strokeWidth="2"
+              fill="transparent"
+              strokeDasharray="377"
+              strokeDashoffset={377 - (377 * countdown) / 3}
+              className="text-[--flx-cyan] transition-all duration-1000 ease-linear"
+            />
+          </svg>
+          <span className="absolute font-bebas text-6xl text-white animate-pulse">
+            {countdown > 0 ? countdown : "GO"}
+          </span>
         </div>
-        <div className="mt-8 space-y-2 text-center">
-          <h3 className="text-sm font-black uppercase tracking-[4px] text-white">Preparing Cinema</h3>
-          <p className="text-[9px] font-bold text-white/30 uppercase tracking-[2px]">Neutralizing background ads...</p>
-        </div>
-        
-        {/* Progress Bar simulation */}
-        <div className="mt-6 w-48 h-1 bg-white/5 rounded-full overflow-hidden">
-          <div className="h-full bg-linear-to-r from-[--flx-cyan] to-[--flx-purple] animate-progress-fast" />
+
+        <div className="mt-12 space-y-2 text-center">
+          <h3 className="text-sm font-black uppercase tracking-[6px] text-white animate-fade-in">Preparing Cinema</h3>
+          <p className="text-[9px] font-bold text-[--flx-cyan] uppercase tracking-[3px] opacity-60">Initializing Stealth Mode</p>
         </div>
       </div>
 

@@ -1,16 +1,17 @@
 import Link from 'next/link';
-import type { TMDBVideo, TMDBExternalIds } from '@/types/tmdb';
+import type { TMDBVideo, TMDBExternalIds, TMDBCredits, TMDBGenre, TMDBTVShow } from '@/types/tmdb';
 import type { Metadata } from 'next';
 import { tmdb } from '@/lib/tmdb';
 import { isFreeFilm } from '@/lib/supabase/actions/free-films';
 import { findFullMovieOnYouTube } from '@/lib/supabase/actions/matcher';
 import { getYear } from '@/lib/utils';
 import { WatchlistButton } from '@/components/movie/WatchlistButton';
-import { MovieRow } from '@/components/home/MovieRow';
 import { ExternalRatings } from '@/components/movie/ExternalRatings';
 import { StreamingAvailability } from '@/components/movie/StreamingAvailability';
 import { TVAiringStatus } from '@/components/movie/TVAiringStatus';
-import { WatchPlayerWrapper } from '@/components/watch/WatchPlayerWrapper';
+import { WatchPlayerWrapper } from '../../../../components/watch/WatchPlayerWrapper';
+import { RotateHint } from '../../../../components/watch/RotateHint';
+import { WatchMetadataTabs } from '../../../../components/watch/WatchMetadataTabs';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -54,10 +55,11 @@ export default async function WatchPage({ params, searchParams }: Props) {
   const title   = movie?.title ?? show?.name ?? 'Unknown Title';
   
   // Parallel fetch for remaining data
-  const [similar, externalIds, videos] = await Promise.all([
+  const [similar, externalIds, videos, credits] = await Promise.all([
     isMovie ? tmdb.movies.similar(mediaId, 1, { silent: true }).catch(() => ({ results: [] })) : tmdb.tv.similar(mediaId, 1, { silent: true }).catch(() => ({ results: [] })),
     isMovie ? tmdb.movies.externalIds(mediaId, { silent: true }).catch(() => null) : tmdb.tv.externalIds(mediaId, { silent: true }).catch(() => null),
     isMovie ? tmdb.movies.videos(mediaId, { silent: true }).catch(() => ({ results: [] })) : tmdb.tv.videos(mediaId, { silent: true }).catch(() => ({ results: [] })),
+    isMovie ? tmdb.movies.credits(mediaId, { silent: true }).catch(() => null) : tmdb.tv.credits(mediaId, { silent: true }).catch(() => null),
   ]);
 
   // Refetch free film ID with correct media type if needed
@@ -79,15 +81,21 @@ export default async function WatchPage({ params, searchParams }: Props) {
   const rating  = movie?.vote_average ?? show?.vote_average ?? 0;
   const backHref = isMovie ? `/movies/${mediaId}` : `/series/${mediaId}`;
 
+  // Director & Cast
+  const creditsData = credits as TMDBCredits | null;
+  const cast = creditsData?.cast || [];
+  const director = creditsData?.crew?.find((c) => c.job === 'Director');
+
   // Next episode logic
   const nextEpisodeUrl = !isMovie ? `/watch/${mediaId}?type=tv&s=${s}&e=${Number(e) + 1}` : undefined;
 
   return (
     <div className="min-h-screen pb-20 bg-[--flx-bg]">
+      <RotateHint />
       
       {/* ── CINEMATIC PLAYER AREA ── */}
-      <section className="w-full bg-black/40 border-b border-white/5 py-12">
-        <div className="container mx-auto px-6">
+      <section className="w-full bg-black/40 border-b border-white/5 py-4 md:py-12">
+        <div className="container mx-auto px-0 md:px-6">
           <WatchPlayerWrapper 
             tmdbId={mediaId}
             mediaType={isMovie ? 'movie' : 'tv'}
@@ -102,6 +110,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
             imdbId={imdbId}
             releaseDate={movie?.release_date ?? show?.first_air_date}
             status={movie?.status ?? show?.status}
+            rating={rating}
           />
         </div>
       </section>
@@ -110,7 +119,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
       <section className="container mx-auto px-6 pt-12">
         <div className="flex flex-col lg:flex-row gap-12 items-start justify-between">
           
-          <div className="flex-1 space-y-8">
+          <div className="flex-1 space-y-12">
             <div className="flex flex-col gap-6">
               <Link href={backHref} className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[3px] font-bold text-[--flx-text-3] hover:text-[--flx-cyan] transition-colors group w-fit">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="group-hover:-translate-x-1 transition-transform">
@@ -136,21 +145,24 @@ export default async function WatchPage({ params, searchParams }: Props) {
               </div>
             </div>
 
-            <StreamingAvailability imdbId={imdbId} />
+            <WatchMetadataTabs 
+              overview={movie?.overview ?? show?.overview ?? ''}
+              genres={(movie?.genres ?? show?.genres ?? []).map((g: TMDBGenre) => g.name)}
+              director={director?.name}
+              runtime={movie?.runtime || (show as TMDBTVShow | null)?.episode_run_time?.[0]}
+              language={movie?.original_language ?? show?.original_language}
+              cast={cast}
+              similar={similar.results}
+            />
           </div>
 
           <div className="w-full lg:w-80 space-y-8">
+            <StreamingAvailability imdbId={imdbId} />
             <TVAiringStatus imdbId={imdbId} />
           </div>
         </div>
-
-        {/* Similar Titles */}
-        {similar?.results?.length > 0 && (
-          <div className="mt-20 pt-16 border-t border-white/5">
-            <MovieRow title="More Like This" items={similar.results.slice(0, 10)} />
-          </div>
-        )}
       </section>
     </div>
   );
 }
+

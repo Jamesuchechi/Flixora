@@ -4,14 +4,20 @@ import { HeroBanner } from "@/components/home/HeroBanner";
 import { TopBar } from "@/components/home/TopBar";
 import { MovieRow } from "@/components/home/MovieRow";
 import { FeaturedRow } from "@/components/home/FeaturedRow";
-import { GenreTabs } from "@/components/home/GenreTabs";
 import { ContinueWatching } from "@/components/home/ContinueWatching";
 import { FreeFilmsRow } from "@/components/home/FreeFilmsRow";
+import { MoodStrip } from "@/components/home/MoodStrip";
+import { SpotlightCard } from "@/components/home/SpotlightCard";
+import { EditorialGrid } from "@/components/home/EditorialGrid";
 import type { TMDBMovie, TMDBTVShow } from "@/types/tmdb";
 
 export const revalidate = 3600;
 
-export default async function HomePage() {
+interface HomePageProps {
+  searchParams: { genre?: string };
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
   const [
     trending, 
     topRated, 
@@ -22,7 +28,8 @@ export default async function HomePage() {
     anime,
     spanishMovies,
     frenchMovies,
-    bollywood
+    bollywood,
+    nowPlaying
   ] = await Promise.all([
     tmdb.trending.all(),
     tmdb.movies.topRated(),
@@ -34,32 +41,61 @@ export default async function HomePage() {
     tmdb.discover.movies({ with_original_language: 'es' }),
     tmdb.discover.movies({ with_original_language: 'fr' }),
     tmdb.discover.movies({ with_original_language: 'hi' }),
+    tmdb.movies.nowPlaying(),
   ]);
 
   type AnyMedia = (TMDBMovie | TMDBTVShow) & { media_type?: "movie" | "tv" };
+
+  const activeMood = searchParams.genre || 'All';
+  
+  // Filter trending items based on mood
+  let filteredTrending = trending.results;
+  if (activeMood !== 'All') {
+    const genreId = movieGenres.genres.find(
+      g => g.name.toLowerCase() === activeMood.toLowerCase() || 
+           (activeMood === 'Sci-Fi' && g.name === 'Science Fiction')
+    )?.id;
+
+    if (genreId) {
+      filteredTrending = trending.results.filter(item => 
+        item.genre_ids?.includes(genreId)
+      );
+    }
+  }
 
   return (
     <div className="min-h-screen">
       <HeroBanner />
       <TopBar />
+      
       <ContinueWatching />
-      <FreeFilmsRow />
+      
+      <div className="h-px bg-white/5 mx-10" />
+      <MoodStrip />
+      
+      <div className="h-px bg-white/5 mx-10" />
+      <div className="bg-linear-to-r from-[--flx-purple]/5 via-transparent to-[--flx-cyan]/5 border-y border-white/5 py-2">
+        <FreeFilmsRow />
+      </div>
 
+      <div className="h-px bg-white/5 mx-10" />
       <section className="px-10 py-7">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-bebas text-xl tracking-widest text-[--flx-text-1]">
-            Trending Now
+          <h2 className="font-bebas text-2xl md:text-3xl tracking-[3px] text-[--flx-text-1]">
+            Trending {activeMood !== 'All' ? `in ${activeMood}` : 'Now'}
           </h2>
-          <Link href="/movies" className="text-xs text-[--flx-cyan] font-medium hover:opacity-70 transition-opacity">
+          <Link href="/movies" className="text-xs text-[--flx-cyan] font-black uppercase tracking-[2px] hover:opacity-70 transition-opacity">
             View all
           </Link>
         </div>
-        <GenreTabs genres={movieGenres.genres} />
-        <MovieRow title="" items={trending.results.slice(0, 10) as AnyMedia[]} showRank />
+        <MovieRow title="" items={filteredTrending.slice(0, 10) as AnyMedia[]} showRank />
       </section>
 
       <div className="h-px bg-white/5 mx-10" />
       <MovieRow title="Top Rated All Time" items={topRated.results.slice(0, 10)} seeAllHref="/movies?sort=top_rated" />
+
+      <div className="h-px bg-white/5 mx-10" />
+      <SpotlightCard item={trending.results[1]} />
 
       <div className="h-px bg-white/5 mx-10" />
       <FeaturedRow title="New Series" shows={newSeries.results.slice(0, 6)} />
@@ -74,6 +110,9 @@ export default async function HomePage() {
       <MovieRow title="K-Cinema Spotlight" items={koreanMovies.results.slice(0, 10)} pill={{ label: "K-WAVE", variant: "new" }} />
 
       <div className="h-px bg-white/5 mx-10" />
+      <EditorialGrid items={topRated.results.slice(0, 4)} title="Flixora Picks" />
+
+      <div className="h-px bg-white/5 mx-10" />
       <MovieRow title="Spanish Cinema" items={spanishMovies.results.slice(0, 10)} pill={{ label: "ESPAÑOL", variant: "new" }} />
 
       <div className="h-px bg-white/5 mx-10" />
@@ -82,7 +121,12 @@ export default async function HomePage() {
       <div className="h-px bg-white/5 mx-10" />
       <MovieRow title="Bollywood Hits" items={bollywood.results.slice(0, 10)} pill={{ label: "BOLLYWOOD", variant: "new" }} />
 
+      <div className="h-px bg-white/5 mx-10" />
+      <MovieRow title="Recently Added" items={nowPlaying.results.slice(0, 10)} pill={{ label: "LATEST", variant: "new" }} />
+
       <div className="h-24" />
     </div>
   );
 }
+
+

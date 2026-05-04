@@ -4,9 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Play, Info, Plus, Star } from 'lucide-react';
+import { Play, Plus, Star } from 'lucide-react';
 import { tmdb } from '@/lib/tmdb';
-import { Badge } from '@/components/ui/Badge';
 import { formatRuntime, getYear, BLUR_DATA_URL } from '@/lib/utils';
 import type { TMDBMovie, TMDBTVShow } from '@/types/tmdb';
 
@@ -16,10 +15,19 @@ interface HeroCarouselProps {
   items: AnyMedia[];
 }
 
+const GENRE_MAP: Record<number, string> = {
+  28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
+  99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History',
+  27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance', 878: 'Sci-Fi',
+  10770: 'TV Movie', 53: 'Thriller', 10752: 'War', 37: 'Western',
+  10759: 'Action & Adventure', 10762: 'Kids', 10763: 'News', 10764: 'Reality',
+  10765: 'Sci-Fi & Fantasy', 10766: 'Soap', 10767: 'Talk', 10768: 'War & Politics'
+};
+
 export function HeroCarousel({ items }: HeroCarouselProps) {
   const shouldReduceMotion = useReducedMotion();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [direction, setDirection] = useState(0); // 1 for next, -1 for prev
+  const [direction, setDirection] = useState(0);
 
   const nextSlide = useCallback(() => {
     setDirection(1);
@@ -39,6 +47,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
   const backdrop = tmdb.image(hero.backdrop_path, 'original');
   const href = `/${isMovie ? 'movies' : 'series'}/${hero.id}`;
   const watchHref = `/watch/${hero.id}`;
+  const isAdult = 'adult' in hero ? (hero as TMDBMovie).adult : false;
 
   // Get next 3 items for the side cards
   const sideItems = [
@@ -50,8 +59,8 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
   const variants = {
     enter: () => ({
       opacity: 0,
-      scale: shouldReduceMotion ? 1 : 1.1,
-      filter: shouldReduceMotion ? 'blur(0px)' : 'blur(10px)',
+      scale: shouldReduceMotion ? 1 : 1.15,
+      filter: shouldReduceMotion ? 'blur(0px)' : 'blur(20px)',
     }),
     center: {
       zIndex: 1,
@@ -62,19 +71,24 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
     exit: () => ({
       zIndex: 0,
       opacity: 0,
-      scale: shouldReduceMotion ? 1 : 0.95,
-      filter: shouldReduceMotion ? 'blur(0px)' : 'blur(10px)',
+      scale: shouldReduceMotion ? 1 : 1.05,
+      filter: shouldReduceMotion ? 'blur(0px)' : 'blur(20px)',
     }),
   };
 
   const textVariants = {
-    initial: { opacity: 0, y: shouldReduceMotion ? 0 : 20 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: shouldReduceMotion ? 0 : -20 },
+    initial: { opacity: 0, x: shouldReduceMotion ? 0 : -40 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: shouldReduceMotion ? 0 : 40 },
   };
 
   return (
-    <div className="relative h-[600px] w-full overflow-hidden bg-[--flx-bg]">
+    <div className="relative h-[700px] md:h-[800px] w-full overflow-hidden bg-[#07050f]">
+      {/* Film Grain Overlay */}
+      <div className="absolute inset-0 z-20 pointer-events-none opacity-[0.03]" 
+           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
+      />
+
       <AnimatePresence initial={false} custom={direction}>
         <motion.div
           key={hero.id}
@@ -84,9 +98,9 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
           animate="center"
           exit="exit"
           transition={{
-            opacity: { duration: 0.8 },
-            scale: { duration: 1.2 },
-            filter: { duration: 0.8 },
+            opacity: { duration: 1.2 },
+            scale: { duration: 1.5, ease: "easeOut" },
+            filter: { duration: 1.0 },
           }}
           className="absolute inset-0"
         >
@@ -96,7 +110,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
               src={backdrop}
               alt=""
               fill
-              className="object-cover object-top opacity-40"
+              className="object-cover object-top opacity-55"
               priority
               sizes="100vw"
               placeholder="blur"
@@ -104,23 +118,23 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
             />
           </div>
 
-          {/* Gradient overlays */}
-          <div className="absolute inset-0 bg-linear-to-r from-[--flx-bg] via-[--flx-bg]/60 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 h-64 bg-linear-to-t from-[--flx-bg] to-transparent" />
+          {/* Cinematic Gradient Overlays */}
+          <div className="absolute inset-0 bg-linear-[to_right,#07050f_0%,rgba(7,5,15,0.75)_55%,transparent_100%] z-10" />
+          <div className="absolute bottom-0 left-0 right-0 h-48 bg-linear-to-t from-[#07050f] via-[#07050f]/60 to-transparent z-10" />
         </motion.div>
       </AnimatePresence>
 
       {/* Aurora orbs */}
       {!shouldReduceMotion && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute w-[800px] h-[500px] -top-48 -left-32 rounded-full bg-[--flx-purple]/20 blur-[100px] animate-aurora" style={{ animationDelay: '0s' }} />
-          <div className="absolute w-[600px] h-[400px] top-0 -right-24 rounded-full bg-[--flx-cyan]/15 blur-[100px] animate-aurora" style={{ animationDelay: '-3s' }} />
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
+          <div className="absolute w-[900px] h-[600px] -top-48 -left-32 rounded-full bg-[--flx-purple]/25 blur-[120px] animate-aurora" style={{ animationDelay: '0s' }} />
+          <div className="absolute w-[700px] h-[500px] top-1/4 -right-24 rounded-full bg-[--flx-cyan]/20 blur-[120px] animate-aurora" style={{ animationDelay: '-3s' }} />
         </div>
       )}
 
       {/* Content */}
-      <div className="relative z-10 flex h-full px-12 items-center">
-        <div className="flex flex-col max-w-[600px]">
+      <div className="relative z-30 flex h-full px-12 md:px-20 items-center">
+        <div className="flex flex-col max-w-[800px]">
           <AnimatePresence mode="wait">
             <motion.div
               key={hero.id + '-content'}
@@ -128,14 +142,18 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
               animate="animate"
               exit="exit"
               variants={textVariants}
-              transition={{ duration: 0.5, delay: 0.2 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
             >
-              <Badge variant="purple" className="mb-6 self-start px-3 py-1 text-[10px] uppercase tracking-widest">
-                <span className="w-1.5 h-1.5 rounded-full bg-violet-400 mr-2 animate-pulse" />
-                Featured Selection
-              </Badge>
+              {/* Trending Badge */}
+              <div className="flex items-center gap-2 mb-6">
+                 <div className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[--flx-cyan] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[--flx-cyan]"></span>
+                 </div>
+                 <span className="text-[10px] font-black uppercase tracking-[4px] text-[--flx-cyan]">Now Trending</span>
+              </div>
 
-              <h1 className="font-bebas text-[50px] md:text-[90px] leading-[0.95] tracking-[1px] mb-6 text-[--flx-text-1]">
+              <h1 className="font-bebas text-7xl md:text-[100px] leading-[0.85] tracking-[1px] mb-8 text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
                 {title.split(' ').map((word, i, arr) => (
                   <span 
                     key={i} 
@@ -149,109 +167,120 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                 ))}
               </h1>
 
-              <div className="flex items-center gap-4 text-sm text-[--flx-text-2] mb-6 font-medium">
-                <div className="flex items-center gap-1.5 text-[--flx-gold]">
-                  <Star size={16} fill="currentColor" />
-                  <span className="text-base font-bold">{hero.vote_average.toFixed(1)}</span>
-                </div>
-                <span className="w-1 h-1 rounded-full bg-white/20" />
-                <span>{getYear(releaseDate)}</span>
-                {runtime && (
-                  <>
-                    <span className="w-1 h-1 rounded-full bg-white/20" />
-                    <span>{formatRuntime(runtime)}</span>
-                  </>
-                )}
-                <span className="w-1 h-1 rounded-full bg-white/20" />
-                <span className="bg-white/10 border border-white/10 rounded px-2.5 py-0.5 text-[11px] uppercase tracking-wider">
-                  {isMovie ? 'Movie' : 'TV Series'}
-                </span>
+              {/* Genre Pills */}
+              <div className="flex flex-wrap gap-2 mb-8">
+                {hero.genre_ids?.slice(0, 3).map(gid => (
+                  <span key={gid} className="bg-[--flx-purple]/10 border border-[--flx-purple]/20 text-violet-200 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider">
+                    {GENRE_MAP[gid] || 'Featured'}
+                  </span>
+                ))}
               </div>
 
-              <p className="text-[15px] leading-relaxed text-[--flx-text-1]/60 mb-10 font-light max-w-lg line-clamp-3">
+              <div className="flex items-center gap-5 text-sm text-white/80 mb-8 font-medium">
+                <div className="flex items-center gap-1.5">
+                  <Star size={16} fill="#fbbf24" stroke="#fbbf24" />
+                  <span className="text-base font-black text-white">{hero.vote_average.toFixed(1)}</span>
+                </div>
+                <span className="text-[--flx-cyan] font-black tracking-widest text-xs">96% MATCH</span>
+                
+                <span className="w-1 h-1 rounded-full bg-white/40" />
+                <span className="font-bold">{getYear(releaseDate)}</span>
+                
+                <span className="w-1 h-1 rounded-full bg-white/40" />
+                <span className="bg-white/10 border border-white/20 rounded-md px-2 py-0.5 text-[10px] font-black">
+                  {isAdult ? '18+' : 'PG-13'}
+                </span>
+
+                {runtime && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-white/40" />
+                    <span className="font-bold">{formatRuntime(runtime)}</span>
+                  </>
+                )}
+              </div>
+
+              <p className="text-[17px] leading-relaxed text-white/70 mb-12 font-light max-w-xl line-clamp-3 drop-shadow-md">
                 {hero.overview}
               </p>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-5">
                 <Link
                   href={watchHref}
-                  className="flex items-center gap-2.5 bg-white text-black hover:bg-white/90 font-bold text-sm px-8 py-4 rounded-xl transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/5"
+                  className="flex items-center gap-3 bg-white text-black hover:bg-[--flx-purple] hover:text-white font-black text-xs px-12 py-5 rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-white/5 group"
                 >
-                  <Play size={18} fill="currentColor" />
-                  Play Now
+                  <Play size={18} fill="currentColor" className="group-hover:animate-pulse" />
+                  WATCH NOW
                 </Link>
                 <Link
                   href={href}
-                  className="flex items-center gap-2.5 bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/10 text-white text-sm font-semibold px-6 py-4 rounded-xl transition-all hover:translate-x-1"
+                  className="flex items-center gap-3 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 text-white text-xs font-black px-8 py-5 rounded-2xl transition-all hover:translate-x-1 uppercase tracking-widest"
                 >
-                  <Info size={18} />
-                  More Info
+                  Details
                 </Link>
                 <button 
                   aria-label="Add to My List"
-                  className="hidden sm:flex w-[52px] h-[52px] items-center justify-center bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/10 text-white rounded-xl transition-all hover:rotate-90 cursor-pointer"
+                  className="hidden sm:flex w-[60px] h-[60px] items-center justify-center bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 text-white rounded-2xl transition-all hover:rotate-90 cursor-pointer"
                 >
-                  <Plus size={22} />
+                  <Plus size={24} />
                 </button>
               </div>
             </motion.div>
           </AnimatePresence>
         </div>
 
-        {/* Side Stack - Hidden on Mobile */}
-        <div className="hidden lg:flex absolute right-12 bottom-20 flex-col items-end gap-6">
-          <div className="flex gap-4 items-end">
+        {/* Side Stack - Netflix Style */}
+        <div className="hidden xl:flex absolute right-20 bottom-32 flex-col items-end gap-8 z-40">
+          <div className="flex gap-5 items-end">
              {sideItems.map((item, idx) => {
                const t = 'title' in item ? (item as TMDBMovie).title : (item as TMDBTVShow).name;
                return (
-                 <motion.button
-                   key={item.id}
-                   whileHover={shouldReduceMotion ? {} : { y: -10, scale: 1.05 }}
-                   whileTap={{ scale: 0.95 }}
-                   onClick={() => {
-                     setDirection(idx + 1 > 0 ? 1 : -1);
-                     setCurrentIndex(items.findIndex(i => i.id === item.id));
-                   }}
-                   aria-label={`Switch to ${t}`}
-                   className={`relative rounded-2xl overflow-hidden transition-all duration-500 shadow-2xl group
-                     ${idx === 0 ? 'w-[160px] h-[240px] opacity-100 ring-2 ring-[--flx-purple]/50' : 
-                       idx === 1 ? 'w-[130px] h-[190px] opacity-60 hover:opacity-100' : 
-                       'w-[110px] h-[160px] opacity-40 hover:opacity-100'}
-                   `}
-                 >
-                   <Image 
-                     src={tmdb.image(item.poster_path, 'w342')} 
-                     alt="" 
-                     fill 
-                     className="object-cover"
-                     sizes="200px"
-                     placeholder="blur"
-                     blurDataURL={BLUR_DATA_URL}
-                   />
-                   <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                     <p className="text-[10px] font-bold text-white truncate">{t}</p>
-                   </div>
-                 </motion.button>
+                 <div key={item.id} className="relative group">
+                    {/* Tooltip */}
+                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-white text-black text-[10px] font-black rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-2xl">
+                      {t}
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45" />
+                    </div>
+
+                    <motion.button
+                      whileHover={shouldReduceMotion ? {} : { y: -12, scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setDirection(idx + 1 > 0 ? 1 : -1);
+                        setCurrentIndex(items.findIndex(i => i.id === item.id));
+                      }}
+                      className={`relative rounded-3xl overflow-hidden transition-all duration-700 shadow-[0_20px_50px_rgba(0,0,0,0.6)]
+                        ${idx === 0 ? 'w-[180px] h-[270px] ring-2 ring-[--flx-cyan]' : 
+                          idx === 1 ? 'w-[140px] h-[210px] opacity-60' : 
+                          'w-[110px] h-[160px] opacity-30'}
+                      `}
+                    >
+                      <Image 
+                        src={tmdb.image(item.poster_path, 'w342')} 
+                        alt="" 
+                        fill 
+                        className="object-cover"
+                        sizes="200px"
+                      />
+                    </motion.button>
+                 </div>
                );
              })}
           </div>
           
-          {/* Progress Indicators */}
-          <div className="flex gap-2 pr-4" role="tablist">
-            {items.slice(0, 5).map((item, i) => {
-              const t = 'title' in item ? (item as TMDBMovie).title : (item as TMDBTVShow).name;
+          {/* Progress Indicators - Up to 10 */}
+          <div className="flex gap-3 pr-4" role="tablist">
+            {items.slice(0, 10).map((item, i) => {
               return (
                 <button
                   key={i}
                   role="tab"
                   aria-selected={i === currentIndex}
-                  aria-label={`Go to slide ${i + 1}: ${t}`}
                   onClick={() => {
                     setDirection(i > currentIndex ? 1 : -1);
                     setCurrentIndex(i);
                   }}
-                  className={`h-1 rounded-full transition-all duration-500 ${
-                    i === currentIndex ? 'w-8 bg-[--flx-purple]' : 'w-2 bg-white/20 hover:bg-white/40'
+                  className={`h-1.5 rounded-full transition-all duration-500 ${
+                    i === currentIndex ? 'w-10 bg-[--flx-cyan] shadow-[0_0_15px_rgba(34,211,238,0.5)]' : 'w-3 bg-white/10 hover:bg-white/30'
                   }`}
                 />
               );
@@ -259,9 +288,6 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
           </div>
         </div>
       </div>
-      
-      {/* Bottom info bar refinement */}
-      <div className="absolute bottom-0 left-0 right-0 h-20 bg-linear-to-t from-black/40 to-transparent z-20 pointer-events-none" />
     </div>
   );
 }

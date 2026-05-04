@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { tmdb } from '@/lib/tmdb';
-import { cn, getYear, BLUR_DATA_URL } from '@/lib/utils';
+import { cn, getYear } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
 import { MovieCardTrailer } from './MovieCardTrailer';
+import { useSound } from '@/hooks/useSound';
+import { TmdbImage } from '../shared/TmdbImage';
 
 interface MovieCardProps {
   id: number;
@@ -26,70 +26,102 @@ export function MovieCard({
   mediaType = 'movie', rank, isFree, className,
 }: MovieCardProps) {
   const router = useRouter();
+  const { playPop } = useSound();
   const [isHovered, setIsHovered] = useState(false);
-  const isInWatchlist   = useStore((s) => s.isInWatchlist);
+  const saved         = useStore((s) => s.watchlist.includes(id));
   const addToWatchlist  = useStore((s) => s.addToWatchlist);
   const removeFromWatchlist = useStore((s) => s.removeFromWatchlist);
-  const saved = isInWatchlist(id);
   const href  = `/${mediaType === 'tv' ? 'series' : 'movies'}/${id}${isFree ? '?mode=free' : ''}`;
+
+  // Netflix-style match score based on rating
+  const matchScore = Math.min(98, Math.floor(rating * 10) + (id % 5));
 
   return (
     <div 
-      className={cn('shrink-0 w-[140px] group cursor-pointer snap-start', className)}
+      className={cn('shrink-0 w-[160px] group cursor-pointer snap-start relative', className)}
       onMouseEnter={() => {
         setIsHovered(true);
+        playPop();
         router.prefetch(href);
       }}
       onMouseLeave={() => setIsHovered(false)}
     >
       <Link href={href}>
-        <div className="relative w-[140px] h-[210px] rounded-xl overflow-hidden mb-2.5 transition-transform duration-200 group-hover:-translate-y-1">
-          <Image
-            src={tmdb.image(posterPath, 'w342')}
+        <div className={cn(
+          "relative w-[160px] h-[240px] rounded-2xl overflow-hidden mb-3 transition-all duration-500 ease-out",
+          "group-hover:-translate-y-2 group-hover:scale-[1.03] group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.6)] group-hover:ring-1 group-hover:ring-white/20"
+        )}>
+          <TmdbImage
+            path={posterPath}
             alt={title}
             fill
-            className="object-cover"
-            sizes="140px"
-            placeholder="blur"
-            blurDataURL={BLUR_DATA_URL}
+            className="object-cover transition-transform duration-700 group-hover:scale-110"
+            sizes="160px"
           />
 
-          {/* Hover Trailer Preview */}
-          <MovieCardTrailer 
-            key={`trailer-${id}-${isHovered}`}
-            id={id} 
-            mediaType={mediaType} 
-            isVisible={isHovered} 
-          />
+          {/* Static Bottom Gradient (Rating & Year) */}
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-black via-black/40 to-transparent pointer-events-none transition-opacity duration-500 group-hover:opacity-0" />
+          <div className="absolute bottom-3 left-3 flex flex-col gap-0.5 transition-opacity duration-500 group-hover:opacity-0 z-10">
+            <div className="flex items-center gap-1.5">
+               <span className="text-[--flx-gold] text-[11px] font-black">★ {rating.toFixed(1)}</span>
+               <span className="text-white/40 text-[9px] font-bold tracking-tighter">{getYear(releaseDate)}</span>
+            </div>
+          </div>
 
-          {/* Rank ghost number */}
+          {/* Hover Trailer Preview (Fades in) */}
+          <div className={cn(
+            "absolute inset-0 z-20 transition-opacity duration-700",
+            isHovered ? "opacity-100" : "opacity-0"
+          )}>
+            <MovieCardTrailer 
+              key={`trailer-${id}`}
+              id={id} 
+              mediaType={mediaType} 
+              isVisible={isHovered} 
+            />
+          </div>
+
+          {/* Rich Hover Overlay */}
+          <div className="absolute inset-0 bg-black/60 flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500 delay-75">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="black"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                </div>
+                <div className="flex flex-col transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500 delay-100">
+                   <span className="text-[--flx-cyan] text-[10px] font-black uppercase tracking-widest">{matchScore}% Match</span>
+                   <span className="text-white/60 text-[9px] font-bold">{mediaType === 'movie' ? 'Movie' : 'Series'} • {getYear(releaseDate)}</span>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-1 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500 delay-150">
+                <span className="text-[9px] text-white/40 font-bold uppercase tracking-tighter px-1.5 py-0.5 rounded-md border border-white/10">Ultra HD</span>
+                <span className="text-[9px] text-white/40 font-bold uppercase tracking-tighter px-1.5 py-0.5 rounded-md border border-white/10">Dolby Atmos</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Rank huge ghost number */}
           {rank && (
-            <span className="absolute top-2 left-2.5 font-bebas text-3xl leading-none text-white/10 select-none z-20">
+            <span className="absolute -bottom-4 -left-2 font-bebas text-[80px] leading-none text-white/10 select-none z-10 drop-shadow-2xl pointer-events-none group-hover:opacity-5 transition-opacity">
               {rank}
             </span>
           )}
 
-          {/* Free Badge */}
+          {/* Free Badge (Cyan Pill) */}
           {isFree && (
-            <div className="absolute top-2 left-2 z-20">
-              <span className="bg-[--flx-purple] text-[8px] font-bold px-1.5 py-0.5 rounded text-white uppercase tracking-tighter shadow-lg">
+            <div className="absolute top-3 left-3 z-40">
+              <span className="bg-[--flx-cyan] text-[9px] font-black px-3 py-1 rounded-full text-black uppercase tracking-[2px] shadow-2xl">
                 Free
               </span>
             </div>
           )}
 
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-[--flx-bg]/75 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl z-20">
-            <div className="w-11 h-11 rounded-full bg-[--flx-purple]/90 flex items-center justify-center">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-            </div>
-            <span className="text-[10px] text-white/70 tracking-wide">Play</span>
-          </div>
-
-          {/* Watchlist button */}
+          {/* Watchlist button (Heart) */}
           <button
             onClick={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               if (saved) {
                 removeFromWatchlist(id);
               } else {
@@ -98,25 +130,33 @@ export function MovieCard({
             }}
             aria-label={saved ? "Remove from watchlist" : "Add to watchlist"}
             className={cn(
-              'absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all z-30',
-              'opacity-0 group-hover:opacity-100',
+              'absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 z-50 backdrop-blur-md',
+              'opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0',
               saved
-                ? 'bg-[--flx-pink]/90 text-white'
-                : 'bg-black/60 text-white/70 hover:text-white'
+                ? 'bg-[--flx-cyan]/90 text-black scale-110 shadow-[0_0_20px_rgba(34,211,238,0.4)]'
+                : 'bg-black/40 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
             )}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+            <svg 
+              width="16" 
+              height="16" 
+              viewBox="0 0 24 24" 
+              fill={saved ? 'currentColor' : 'none'} 
+              stroke="currentColor" 
+              strokeWidth="2.5"
+              className={cn("transition-transform duration-300", saved && "animate-pulse")}
+            >
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </button>
         </div>
 
-        <p className="text-[12px] font-medium text-[--flx-text-1] truncate mb-0.5">{title}</p>
-        <div className="flex items-center gap-1.5 text-[10px] text-[--flx-text-3]">
-          <span className="text-[--flx-gold] font-semibold">★ {rating.toFixed(1)}</span>
-          {releaseDate && <span>{getYear(releaseDate)}</span>}
+        {/* Title area (Static) */}
+        <div className="px-1 space-y-1 group-hover:opacity-0 transition-opacity duration-300">
+           <p className="text-[13px] font-bold text-[--flx-text-1] truncate tracking-tight">{title}</p>
         </div>
       </Link>
     </div>
   );
 }
+

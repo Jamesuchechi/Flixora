@@ -12,11 +12,11 @@ export function PageTransition({ children }: PageTransitionProps) {
 
   return (
     <motion.div
-      initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -10 }}
+      initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20, filter: 'blur(10px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -20, filter: 'blur(10px)' }}
       transition={{
-        duration: 0.4,
+        duration: 0.6,
         ease: [0.22, 1, 0.36, 1],
       }}
     >

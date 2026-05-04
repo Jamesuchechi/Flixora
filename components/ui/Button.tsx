@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { ButtonHTMLAttributes, forwardRef } from 'react';
+import { ButtonHTMLAttributes, forwardRef, useState } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'icon';
@@ -21,28 +21,61 @@ const sizes = {
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'primary', size = 'md', loading, className, children, disabled, ...props }, ref) => (
-    <button
-      ref={ref}
-      disabled={disabled || loading}
-      className={cn(
-        'inline-flex items-center justify-center font-medium transition-all duration-150',
-        'disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--flx-purple]',
-        variants[variant],
-        sizes[size],
-        className
-      )}
-      {...props}
-    >
-      {loading ? (
-        <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-      ) : children}
-    </button>
-  )
+  ({ variant = 'primary', size = 'md', loading, className, children, disabled, ...props }, ref) => {
+    const [ripples, setRipples] = useState<{ id: number; x: number; y: number; size: number }[]>([]);
+
+    const createRipple = (e: React.MouseEvent<HTMLButtonElement>) => {
+      const container = e.currentTarget.getBoundingClientRect();
+      const size = Math.max(container.width, container.height);
+      const x = e.clientX - container.left - size / 2;
+      const y = e.clientY - container.top - size / 2;
+
+      setRipples((prev) => [...prev, { id: Date.now(), x, y, size }]);
+    };
+
+    return (
+      <button
+        ref={ref}
+        disabled={disabled || loading}
+        onMouseDown={createRipple}
+        className={cn(
+          'inline-flex items-center justify-center font-medium transition-all duration-150 relative overflow-hidden',
+          'disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--flx-purple]',
+          variants[variant],
+          sizes[size],
+          className
+        )}
+        {...props}
+      >
+        <span className="relative z-10 flex items-center gap-[inherit]">
+          {loading ? (
+            <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : children}
+        </span>
+
+        {/* Ripple Layer */}
+        <span className="absolute inset-0 pointer-events-none">
+          {ripples.map((r) => (
+            <span
+              key={r.id}
+              className="ripple"
+              style={{
+                top: r.y,
+                left: r.x,
+                width: r.size,
+                height: r.size,
+              }}
+              onAnimationEnd={() => setRipples((prev) => prev.filter((rip) => rip.id !== r.id))}
+            />
+          ))}
+        </span>
+      </button>
+    );
+  }
 );
 
 Button.displayName = 'Button';

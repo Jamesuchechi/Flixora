@@ -21,6 +21,7 @@ interface WatchPlayerWrapperProps {
   imdbId?: string;
   releaseDate?: string;
   status?: string;
+  rating?: number;
 }
 
 export function WatchPlayerWrapper(props: WatchPlayerWrapperProps) {
