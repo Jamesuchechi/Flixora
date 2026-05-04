@@ -6,16 +6,20 @@ import type { Profile } from '@/types/supabase';
 import { tmdb } from '@/lib/tmdb';
 import type { TMDBMovie, TMDBTVShow } from '@/types/tmdb';
 
-interface EnrichedWatchProgress {
+export interface EnrichedWatchProgress {
   id: string;
+  user_id: string;
   tmdb_id: number;
   media_type: 'movie' | 'tv';
+  season: number | null;
+  episode: number | null;
+  progress: number;
   updated_at: string;
   title?: string;
   backdrop_path?: string | null;
 }
 
-interface EnrichedCustomList {
+export interface EnrichedCustomList {
   id: string;
   name: string;
   description: string | null;
@@ -105,7 +109,7 @@ export async function getPublicProfileData(username: string) {
               backdrop_path: details.backdrop_path 
             };
           } catch {
-            return item;
+            return { ...item, title: undefined, backdrop_path: undefined };
           }
         })
       );

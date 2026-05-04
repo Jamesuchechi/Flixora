@@ -4,11 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { List, ChevronRight, Lock, Globe } from 'lucide-react';
-import type { CustomList } from '@/types/supabase';
-
-interface EnrichedCustomList extends CustomList {
-  item_count?: number;
-}
+import { EnrichedCustomList } from '@/lib/supabase/actions/profiles';
 
 interface UserListsProps {
   lists: EnrichedCustomList[];

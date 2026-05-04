@@ -5,13 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { History, PlayCircle, Clock } from 'lucide-react';
-import type { WatchProgress } from '@/types/supabase';
+import { EnrichedWatchProgress } from '@/lib/supabase/actions/profiles';
 import { tmdb } from '@/lib/tmdb';
-
-interface EnrichedWatchProgress extends WatchProgress {
-  title?: string;
-  backdrop_path?: string | null;
-}
 
 interface ActivityMiniFeedProps {
   history: EnrichedWatchProgress[];
