@@ -27,7 +27,7 @@ export function Footer() {
   ];
 
   return (
-    <footer className="relative z-10 bg-[--flx-bg] border-t border-white/5 pt-16 pb-8 px-10 mt-10">
+    <footer className="hidden md:block relative z-10 bg-[--flx-bg] border-t border-white/5 pt-16 pb-8 px-10 mt-10">
       {/* Background Ambience */}
       <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-[--flx-purple]/5 rounded-full blur-[100px] pointer-events-none" />
       
