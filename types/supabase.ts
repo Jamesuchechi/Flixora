@@ -130,6 +130,7 @@ export interface Database {
           media_type: 'movie' | 'tv';
           status: string;
           playback_timestamp: number;
+          is_locked: boolean;
           created_at: string;
         };
         Insert: {
@@ -139,11 +140,13 @@ export interface Database {
           media_type: 'movie' | 'tv';
           status?: string;
           playback_timestamp?: number;
+          is_locked?: boolean;
           created_at?: string;
         };
         Update: {
           status?: string;
           playback_timestamp?: number;
+          is_locked?: boolean;
         };
       };
       party_participants: {

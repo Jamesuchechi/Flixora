@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS public.activity_comments (
 -- 11.4 Watch Parties
 CREATE TABLE IF NOT EXISTS public.watch_parties (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  host_id UUID REFERENCES auth.users NOT NULL,
+  host_id UUID REFERENCES public.profiles(id) NOT NULL,
   tmdb_id INTEGER NOT NULL,
   media_type TEXT CHECK (media_type IN ('movie', 'tv')) NOT NULL,
   status TEXT DEFAULT 'lobby',
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS public.watch_parties (
 
 CREATE TABLE IF NOT EXISTS public.party_participants (
   party_id UUID REFERENCES public.watch_parties ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES auth.users NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) NOT NULL,
   joined_at TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY (party_id, user_id)
 );
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS public.party_participants (
 CREATE TABLE IF NOT EXISTS public.party_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   party_id UUID REFERENCES public.watch_parties ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES auth.users,
+  user_id UUID REFERENCES public.profiles(id),
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -175,4 +175,41 @@ EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN
     CREATE POLICY "Users can manage their own votes" ON public.list_item_votes FOR ALL 
     USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- 11.4 Watch Parties RLS
+ALTER TABLE public.watch_parties ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.party_participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.party_messages ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+    CREATE POLICY "Parties are viewable by everyone" ON public.watch_parties FOR SELECT USING (true);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Users can create parties" ON public.watch_parties FOR INSERT WITH CHECK (auth.uid() = host_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Hosts can update their parties" ON public.watch_parties FOR UPDATE USING (auth.uid() = host_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Participants are viewable by everyone" ON public.party_participants FOR SELECT USING (true);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Users can join parties" ON public.party_participants FOR INSERT WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Users can leave parties" ON public.party_participants FOR DELETE USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Messages are viewable by participants" ON public.party_messages FOR SELECT USING (true);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Users can send messages" ON public.party_messages FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
 EXCEPTION WHEN duplicate_object THEN null; END $$;

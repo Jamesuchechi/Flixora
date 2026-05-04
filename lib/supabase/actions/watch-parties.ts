@@ -19,7 +19,8 @@ export async function startWatchParty(tmdbId: number, mediaType: 'movie' | 'tv')
       tmdb_id: tmdbId,
       media_type: mediaType,
       status: 'lobby',
-      playback_timestamp: 0
+      playback_timestamp: 0,
+      is_locked: false
     })
     .select()
     .single();
@@ -31,6 +32,18 @@ export async function startWatchParty(tmdbId: number, mediaType: 'movie' | 'tv')
     party_id: party.id,
     user_id: user.id
   });
+
+  // Log activity (non-critical)
+  try {
+    const { createActivityEvent } = await import('./social');
+    await createActivityEvent('create_party', { 
+      party_id: party.id,
+      tmdb_id: tmdbId,
+      media_type: mediaType
+    });
+  } catch (err) {
+    console.error('Activity logging failed:', err);
+  }
 
   return party as WatchParty;
 }
@@ -208,7 +221,7 @@ export async function getPartyDetails(partyId: string) {
     .from('watch_parties')
     .select(`
       *,
-      host:profiles!watch_parties_host_id_fkey(*)
+      host:profiles!host_id(*)
     `)
     .eq('id', partyId)
     .single();
@@ -227,7 +240,7 @@ export async function getPartyParticipants(partyId: string) {
     .from('party_participants')
     .select(`
       *,
-      user:profiles(*)
+      user:profiles!user_id(*)
     `)
     .eq('party_id', partyId);
 
