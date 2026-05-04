@@ -64,14 +64,14 @@ export function WatchAdvisor() {
   };
 
   return (
-    <div className="fixed bottom-8 right-8 z-100">
+    <div className="fixed bottom-24 right-4 md:bottom-8 md:right-8 z-100">
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="absolute bottom-20 right-0 w-[400px] max-h-[600px] h-[80vh] bg-[--flx-bg]/95 backdrop-blur-2xl border border-white/10 rounded-[32px] shadow-2xl flex flex-col overflow-hidden"
+            className="absolute bottom-20 -right-2 md:right-0 w-[calc(100vw-32px)] md:w-[400px] max-h-[600px] h-[70vh] md:h-[80vh] bg-[--flx-bg]/95 backdrop-blur-2xl border border-white/10 rounded-[32px] shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="p-6 border-b border-white/5 flex items-center justify-between bg-linear-to-b from-white/5 to-transparent">
@@ -207,7 +207,7 @@ export function WatchAdvisor() {
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all relative overflow-hidden group",
+          "w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-2xl transition-all relative overflow-hidden group",
           isOpen 
             ? "bg-white text-black" 
             : "bg-linear-to-br from-[--flx-purple] to-[--flx-cyan] text-white"
