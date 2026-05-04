@@ -7,11 +7,13 @@ import { findFullMovieOnYouTube } from '@/lib/supabase/actions/matcher';
 import { getYear } from '@/lib/utils';
 import { WatchlistButton } from '@/components/movie/WatchlistButton';
 import { ExternalRatings } from '@/components/movie/ExternalRatings';
-import { StreamingAvailability } from '@/components/movie/StreamingAvailability';
+import { WhereToWatch } from '@/components/movie/WhereToWatch';
 import { TVAiringStatus } from '@/components/movie/TVAiringStatus';
 import { WatchPlayerWrapper } from '../../../../components/watch/WatchPlayerWrapper';
 import { RotateHint } from '../../../../components/watch/RotateHint';
 import { WatchMetadataTabs } from '../../../../components/watch/WatchMetadataTabs';
+import { ExpandableOverview } from '../../../../components/watch/ExpandableOverview';
+import { WatchPageActions } from '../../../../components/watch/WatchPageActions';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -88,6 +90,8 @@ export default async function WatchPage({ params, searchParams }: Props) {
 
   // Next episode logic
   const nextEpisodeUrl = !isMovie ? `/watch/${mediaId}?type=tv&s=${s}&e=${Number(e) + 1}` : undefined;
+  const genres = (movie?.genres ?? show?.genres ?? []).map((g: TMDBGenre) => g.name).slice(0, 4);
+  const overview = movie?.overview ?? show?.overview ?? '';
 
   return (
     <div className="min-h-screen pb-20 bg-[--flx-bg]">
@@ -107,10 +111,8 @@ export default async function WatchPage({ params, searchParams }: Props) {
             fullFilmYoutubeId={actualFreeFilmId || undefined}
             nextEpisodeUrl={nextEpisodeUrl}
             overview={movie?.overview ?? show?.overview}
-            imdbId={imdbId}
-            releaseDate={movie?.release_date ?? show?.first_air_date}
-            status={movie?.status ?? show?.status}
             rating={rating}
+            imdbId={imdbId}
           />
         </div>
       </section>
@@ -143,6 +145,23 @@ export default async function WatchPage({ params, searchParams }: Props) {
                   </div>
                 </div>
               </div>
+
+              {/* Genre pills */}
+              {genres.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {genres.map((g) => (
+                    <span
+                      key={g}
+                      className="px-3 py-1 rounded-full bg-white/5 border border-white/8 text-[10px] font-black uppercase tracking-[2px] text-white/40"
+                    >
+                      {g}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Overview with Show more */}
+              <ExpandableOverview text={overview} />
             </div>
 
             <WatchMetadataTabs 
@@ -157,8 +176,15 @@ export default async function WatchPage({ params, searchParams }: Props) {
           </div>
 
           <div className="w-full lg:w-80 space-y-8">
-            <StreamingAvailability imdbId={imdbId} />
+            <WhereToWatch
+              imdbId={imdbId}
+              tmdbId={mediaId}
+              title={title}
+              mediaType={isMovie ? 'movie' : 'tv'}
+              fullFilmYoutubeId={actualFreeFilmId || undefined}
+            />
             <TVAiringStatus imdbId={imdbId} />
+            <WatchPageActions reportId={imdbId ?? String(mediaId)} title={title} />
           </div>
         </div>
       </section>

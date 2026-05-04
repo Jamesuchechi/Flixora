@@ -1,24 +1,33 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Play, SkipForward, Tv, Server, ChevronDown, Calendar, AlertCircle, PlayCircle, Monitor, Maximize2, Volume2, Info, RefreshCw } from 'lucide-react';
+import { Play, SkipForward, Tv, AlertCircle, Monitor, Maximize2, Volume2, Info, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { YouTubePlayer, YouTubePlayerRef } from './YouTubePlayer';
 import { updateWatchProgress } from '@/lib/supabase/actions/progress';
 import { ReportButton } from './ReportButton';
-import { SmartGuard } from './SmartGuard';
 import { SceneAssistant } from './SceneAssistant';
 import { Sparkles } from 'lucide-react';
 import { getSkipSegments, SkipSegment } from '@/lib/ai/skip-detection';
 import { SkipPrompt } from './SkipPrompt';
 import { updatePlaybackPreference, getUserPreferences, logSkipEvent } from '@/lib/supabase/actions/preferences';
-import { findFullMovieOnYouTube } from '@/lib/supabase/actions/matcher';
 import { ReactionOverlay } from './ReactionOverlay';
 import { ReactionHeatmap } from './ReactionHeatmap';
 import { ReactionToggle } from './ReactionToggle';
-import { Loader2, Search, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { EndPartyScreen } from '../social/EndPartyScreen';
+import dynamic from 'next/dynamic';
+import type { YTSTorrent } from '@/lib/yts';
+import { useToast } from '@/hooks/useToast';
+
+const P2P_ENABLED = process.env.NEXT_PUBLIC_ENABLE_P2P === 'true';
+const MODE_STORAGE_KEY = 'flixora-preferred-mode';
+
+const TorrentPlayer = dynamic(
+  () => import('./TorrentPlayer'),
+  { ssr: false, loading: () => <div className="w-full h-full bg-black animate-pulse" /> }
+);
 
 interface VideoPlayerProps {
   tmdbId: number;
@@ -32,48 +41,13 @@ interface VideoPlayerProps {
   fullFilmYoutubeId?: string;
   nextEpisodeUrl?: string;
   overview?: string;
-  imdbId?: string;
-  releaseDate?: string;
-  status?: string;
   rating?: number;
   partyId?: string;
   isHost?: boolean;
+  imdbId?: string;
 }
 
-const SERVERS = [
-  { 
-    id: 'vidsrc_cc', 
-    name: 'Server 1 (Fast)', 
-    url: 'https://vidsrc.cc/v2/embed/',
-    health: 'working'
-  },
-  { 
-    id: 'autoembed', 
-    name: 'Server 2 (Auto)', 
-    url: 'https://player.autoembed.cc/embed/',
-    health: 'working'
-  },
-  { 
-    id: 'vidlink', 
-    name: 'Server 3 (HD)', 
-    url: 'https://vidlink.pro/',
-    health: 'warning'
-  },
-  { 
-    id: 'embed_su', 
-    name: 'Server 4 (Backup)', 
-    url: 'https://embed.su/embed/',
-    health: 'working'
-  },
-  { 
-    id: 'twoembed', 
-    name: 'Server 5 (Alt)', 
-    url: 'https://www.2embed.cc/embed/',
-    health: 'error'
-  },
-];
-
-const CURRENT_TIME = Date.now();
+type PlayerMode = 'trailer' | 'free' | 'torrent';
 
 export function VideoPlayer({
   tmdbId,
@@ -87,71 +61,48 @@ export function VideoPlayer({
   fullFilmYoutubeId,
   nextEpisodeUrl,
   overview = "",
-  imdbId,
-  releaseDate,
-  status,
   rating = 0,
   partyId,
-  isHost = false
+  isHost = false,
+  imdbId
 }: VideoPlayerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const initialMode = searchParams.get('mode') as 'player' | 'trailer' | 'free' | null;
+  const { toast } = useToast();
 
-  const [mode, setMode] = useState<'player' | 'trailer' | 'free'>(
-    initialMode === 'free' && fullFilmYoutubeId ? 'free'
-    : initialMode === 'trailer' ? 'trailer'
-    : 'player'
-  );
-  const [activeServer, setActiveServer] = useState(SERVERS[0]);
-  const [showServerList, setShowServerList] = useState(false);
-  const [showAdGuard, setShowAdGuard] = useState(true);
-  const [playerKey, setPlayerKey] = useState(0);
+  const activeFreeId = fullFilmYoutubeId ?? null;
+
+  const getDefaultMode = (): PlayerMode => {
+    const stored = typeof window !== 'undefined'
+      ? (localStorage.getItem(MODE_STORAGE_KEY) as PlayerMode | null)
+      : null;
+    const urlMode = searchParams.get('mode') as PlayerMode | null;
+    const preferred = urlMode ?? stored;
+    // Use preferred only if that mode is structurally available for this title
+    if (preferred === 'free' && activeFreeId) return 'free';
+    if (preferred === 'torrent' && P2P_ENABLED) return 'torrent';
+    if (preferred === 'trailer') return 'trailer';
+    return activeFreeId ? 'free' : 'trailer';
+  };
+
+  const [mode, setMode] = useState<PlayerMode>(() => getDefaultMode());
+
+  const [torrents, setTorrents] = useState<(YTSTorrent & { magnetUri: string })[]>([]);
+  const [selectedQuality, setSelectedQuality] = useState<string>('1080p');
+  const [torrentLoading, setTorrentLoading] = useState(P2P_ENABLED && !!imdbId);
+
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [skipSegments, setSkipSegments] = useState<SkipSegment[]>([]);
   const [autoSkipEnabled, setAutoSkipEnabled] = useState(false);
-  const [isSearchingAI, setIsSearchingAI] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [bufferingParticipants, setBufferingParticipants] = useState<string[]>([]);
-  const [dynamicFreeId, setDynamicFreeId] = useState<string | null>(null);
-  const [forceStream, setForceStream] = useState(false);
   const [isCinemaMode, setIsCinemaMode] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(true);
-  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [isPartyEnded, setIsPartyEnded] = useState(false);
   const youtubeRef = useRef<YouTubePlayerRef>(null);
-
-  // Listen for ready signals from 3rd-party iframes
-  useEffect(() => {
-    const handleMessage = (e: MessageEvent) => {
-      // Check for common 'ready' events from player embeds
-      try {
-        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-        const readyEvents = ['ready', 'player_ready', 'video_ready', 'vidsrc_ready', 'vidlink_ready'];
-        if (data && (readyEvents.includes(data.event) || readyEvents.includes(data.type) || data === 'ready')) {
-          setIsPlayerReady(true);
-        }
-      } catch {
-        // Not JSON or other message, ignore
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  const isUnreleased = useMemo(() => {
-    if (!releaseDate) return false;
-    const releaseMs = new Date(releaseDate).getTime();
-    const nowMs = CURRENT_TIME;
-    const isFutureDate = releaseMs > nowMs + 86_400_000;
-    const releasedStatuses = ['Released', 'Returning Series', 'Ended', 'Canceled'];
-    const isConfirmedReleased = status ? releasedStatuses.includes(status) : false;
-    return isFutureDate && !isConfirmedReleased;
-  }, [releaseDate, status]);
 
   useEffect(() => {
     async function loadInitialData() {
@@ -164,10 +115,25 @@ export function VideoPlayer({
     }
     loadInitialData();
 
+    // Fetch Torrents if P2P enabled
+    if (P2P_ENABLED && imdbId) {
+      import('@/lib/yts').then(async ({ getMovieTorrents }) => {
+        setTorrentLoading(true);
+        const { torrents } = await getMovieTorrents(imdbId);
+        if (torrents.length > 0) {
+          setTorrents(torrents);
+          // Auto-select best quality if not already set or not available
+          const has1080 = torrents.some(t => t.quality === '1080p');
+          setSelectedQuality(has1080 ? '1080p' : torrents[0].quality);
+        }
+        setTorrentLoading(false);
+      });
+    }
+
     // Hide shortcuts after 5s
     const timer = setTimeout(() => setShowShortcuts(false), 5000);
     return () => clearTimeout(timer);
-  }, [tmdbId, mediaType, season, episode, fullFilmYoutubeId, youtubeId]);
+  }, [tmdbId, mediaType, season, episode, fullFilmYoutubeId, youtubeId, imdbId]);
 
   // Handle Auto-Skip Logic
   useEffect(() => {
@@ -215,8 +181,8 @@ export function VideoPlayer({
       .on('broadcast', { event: 'sync' }, ({ payload }) => {
         if (isHost) return; // Host ignores sync signals
 
-        const { timestamp, status, mode: remoteMode } = payload;
-        
+        const { timestamp, status: syncStatus, mode: remoteMode } = payload;
+
         // Sync Mode
         if (remoteMode !== mode) {
           setMode(remoteMode);
@@ -229,8 +195,8 @@ export function VideoPlayer({
           }
         }
 
-        // Sync Status (Placeholder: we'd need play/pause control on YouTube/Iframe)
-        console.log('Syncing to:', timestamp, status);
+        // Sync Status placeholder — syncStatus available for future play/pause control
+        void syncStatus;
       })
       .on('broadcast', { event: 'ended' }, () => {
         setIsPartyEnded(true);
@@ -251,7 +217,7 @@ export function VideoPlayer({
 
   // Host broadcast
   useEffect(() => {
-    if (!partyId || !isHost || !isPlayerReady) return;
+    if (!partyId || !isHost) return;
 
     const supabase = createClient();
     const channel = supabase.channel(`party_sync:${partyId}`);
@@ -262,36 +228,30 @@ export function VideoPlayer({
         event: 'sync',
         payload: {
           timestamp: currentTime,
-          status: 'playing', // We'd detect actual status here
+          status: 'playing',
           mode: mode
         }
       });
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [partyId, isHost, isPlayerReady, currentTime, mode]);
+  }, [partyId, isHost, currentTime, mode]);
 
   // Buffering Broadcast
   useEffect(() => {
     if (!partyId) return;
     const supabase = createClient();
     const channel = supabase.channel(`party_sync:${partyId}`);
-    
+
     channel.send({
       type: 'broadcast',
       event: 'buffering',
-      payload: { 
+      payload: {
         username: 'A friend', // Fallback
-        isBuffering 
+        isBuffering
       }
     });
   }, [partyId, isBuffering]);
-
-  const handleRefresh = () => {
-    setPlayerKey(prev => prev + 1);
-    setShowAdGuard(true);
-    setIsPlayerReady(false);
-  };
 
   const lastUpdateRef = useRef<{ percent: number; time: number }>({ percent: -1, time: 0 });
 
@@ -299,10 +259,10 @@ export function VideoPlayer({
     if (dur > 0) {
       setCurrentTime(seconds);
       setDuration(dur);
-      
+
       const percent = Math.floor((seconds / dur) * 100);
       const now = Date.now();
-      
+
       const isMilestone = percent % 5 === 0;
       const isNewPercent = percent !== lastUpdateRef.current.percent;
       const enoughTimePassed = now - lastUpdateRef.current.time > 10000;
@@ -314,60 +274,40 @@ export function VideoPlayer({
     }
   };
 
-  const handleModeChange = (newMode: 'player' | 'trailer' | 'free') => {
+  const handleModeChange = (newMode: PlayerMode, silent = false) => {
     setMode(newMode);
+    // Persist preference
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(MODE_STORAGE_KEY, newMode);
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.set('mode', newMode);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    if (newMode === 'player') {
-      setShowAdGuard(true);
+    if (!silent && newMode === 'trailer') {
+      toast({ message: 'Switching to trailer mode…', type: 'info' });
     }
   };
 
-  const handleServerChange = (server: typeof SERVERS[0]) => {
-    setActiveServer(server);
-    setShowServerList(false);
-    setShowAdGuard(true);
-    setIsPlayerReady(false);
+  const handleP2PError = () => {
+    // Re-compute at call time — torrents.length is known now
+    const runtimeModes: PlayerMode[] = [
+      P2P_ENABLED && torrents.length > 0 ? 'torrent' : null,
+      activeFreeId ? 'free' : null,
+      'trailer',
+    ].filter(Boolean) as PlayerMode[];
+    const idx = runtimeModes.indexOf('torrent');
+    const next = runtimeModes[idx + 1] ?? 'trailer';
+    toast({ message: `P2P failed — switching to ${next} mode`, type: 'info' });
+    handleModeChange(next, true);
   };
-
-  const handleAISearch = async () => {
-    setIsSearchingAI(true);
-    try {
-      const matchedId = await findFullMovieOnYouTube(tmdbId, title, "", mediaType);
-      if (matchedId) {
-        setDynamicFreeId(matchedId);
-        setMode('free');
-      } else {
-        alert("AI Matcher couldn't find a verified full version on YouTube. Try another server.");
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsSearchingAI(false);
-    }
-  };
-
-  const getStreamUrl = () => {
-    const { id } = activeServer;
-    const identifier = tmdbId || imdbId;
-    if (id === 'vidsrc_cc') return mediaType === 'tv' ? `https://vidsrc.cc/v2/embed/tv/${identifier}/${season}/${episode}` : `https://vidsrc.cc/v2/embed/movie/${identifier}`;
-    if (id === 'autoembed') return mediaType === 'tv' ? `https://player.autoembed.cc/embed/tv/${identifier}/${season}/${episode}` : `https://player.autoembed.cc/embed/movie/${identifier}`;
-    if (id === 'vidlink') return mediaType === 'tv' ? `https://vidlink.pro/tv/${identifier}/${season}/${episode}` : `https://vidlink.pro/movie/${identifier}`;
-    if (id === 'embed_su') return mediaType === 'tv' ? `https://embed.su/embed/tv/${identifier}/${season}/${episode}` : `https://embed.su/embed/movie/${identifier}`;
-    if (id === 'twoembed') return mediaType === 'tv' ? `https://www.2embed.cc/embedtv/${identifier}&s=${season}&e=${episode}` : `https://www.2embed.cc/embed/${identifier}`;
-    return mediaType === 'tv' ? `https://vidsrc.cc/v2/embed/tv/${identifier}/${season}/${episode}` : `https://vidsrc.cc/v2/embed/movie/${identifier}`;
-  };
-
-  const activeFreeId = dynamicFreeId || fullFilmYoutubeId;
 
   if (isPartyEnded) {
     return (
-      <EndPartyScreen 
-        title={title} 
-        tmdbId={tmdbId} 
-        mediaType={mediaType} 
-        posterPath={posterPath || backdrop} 
+      <EndPartyScreen
+        title={title}
+        tmdbId={tmdbId}
+        mediaType={mediaType}
+        posterPath={posterPath || backdrop}
       />
     );
   }
@@ -387,39 +327,34 @@ export function VideoPlayer({
         )}
       </AnimatePresence>
 
+      {/* ── P2P Demo Mode Banner ── Only shown when in torrent mode */}
+      {P2P_ENABLED && mode === 'torrent' && (
+        <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3 rounded-2xl bg-linear-to-r from-[--flx-purple]/10 via-[--flx-cyan]/5 to-[--flx-purple]/10 border border-white/10 text-center sm:text-left">
+          <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
+            <span className="text-[--flx-cyan] font-black">P2P Demo Mode</span>
+            {' '}— Content streamed via BitTorrent network
+          </p>
+          <span className="shrink-0 px-3 py-1 rounded-lg bg-[--flx-purple]/20 border border-[--flx-purple]/30 text-[--flx-purple] text-[9px] font-black uppercase tracking-[2px] whitespace-nowrap">
+            Investor Preview
+          </span>
+        </div>
+      )}
+
       <div className={cn(
         "relative w-full aspect-video rounded-[32px] overflow-hidden bg-[#090514] shadow-2xl border border-white/5 group transition-all duration-700",
         isCinemaMode ? "z-50 shadow-[0_0_100px_rgba(0,0,0,0.8)] scale-[1.02]" : "z-10"
       )}>
 
         {/* Player Modes */}
-        {mode === 'player' ? (
-          <div className="w-full h-full relative">
-            <SmartGuard isShieldActive={showAdGuard} onRefresh={handleRefresh} isReady={isPlayerReady} />
-            {isUnreleased && !forceStream ? (
-              <div className="absolute inset-0 z-40 bg-[#090514] flex flex-col items-center justify-center p-12 text-center space-y-6">
-                <div className="w-20 h-20 rounded-full bg-[--flx-cyan]/10 flex items-center justify-center animate-pulse"><Calendar className="text-[--flx-cyan]" size={40} /></div>
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-bebas tracking-[4px] text-white">Coming Soon to Streaming</h3>
-                  <p className="text-white/40 text-xs uppercase tracking-[2px] max-w-md">This media is not yet available on our streaming servers. Expected release: <span className="text-white">{releaseDate}</span></p>
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-4">
-                  <button onClick={() => handleModeChange('trailer')} className="flex items-center gap-3 px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[10px] font-black text-white uppercase tracking-[3px] transition-all"><Tv size={14} />Watch Official Trailer</button>
-                  <button onClick={() => setForceStream(true)} className="flex items-center gap-3 px-8 py-3 bg-[--flx-cyan]/10 hover:bg-[--flx-cyan]/20 border border-[--flx-cyan]/20 rounded-full text-[10px] font-black text-[--flx-cyan] uppercase tracking-[3px] transition-all"><PlayCircle size={14} />Try Streaming Anyway</button>
-                </div>
-              </div>
-            ) : (
-              <iframe
-                key={`${activeServer.id}-${tmdbId}-${season}-${episode}-${playerKey}`}
-                src={getStreamUrl()}
-                title={`Video player for ${title}`}
-                className="w-full h-full border-none z-10 relative"
-                allowFullScreen
-                allow="autoplay; encrypted-media; picture-in-picture"
-                referrerPolicy="no-referrer"
-              />
-            )}
-          </div>
+        {mode === 'torrent' && P2P_ENABLED && torrents.length > 0 ? (
+          <TorrentPlayer 
+            magnetUri={torrents.find(t => t.quality === selectedQuality)?.magnetUri ?? torrents[0].magnetUri}
+            title={title}
+            quality={selectedQuality}
+            startTime={typeof window !== 'undefined' ? Number(new URLSearchParams(window.location.search).get('t')) || 0 : 0}
+            onProgress={handleProgress}
+            onError={handleP2PError}
+          />
         ) : mode === 'free' && activeFreeId ? (
           <div className="relative w-full h-full bg-black">
             <YouTubePlayer
@@ -434,8 +369,22 @@ export function VideoPlayer({
           </div>
         ) : (
           <div className="relative w-full h-full bg-black">
-            {youtubeId ? <YouTubePlayer videoId={youtubeId} title={title} onEnd={() => handleModeChange('player')} /> : (
-              <div className="absolute inset-0 flex items-center justify-center bg-[#090514] flex-col space-y-4"><AlertCircle className="text-white/20" size={48} /><p className="text-[--flx-text-3] text-[10px] uppercase tracking-[3px] font-bold">No official trailer available</p></div>
+            {youtubeId ? <YouTubePlayer videoId={youtubeId} title={title} /> : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-[#090514] p-8 text-center">
+                <AlertCircle className="text-white/10" size={48} />
+                <div className="space-y-2">
+                  <p className="text-[--flx-text-3] text-[10px] uppercase tracking-[4px] font-black">No video available</p>
+                  <p className="text-white/20 text-xs font-medium">This title has no trailer or free stream linked yet.</p>
+                </div>
+                <a
+                  href={`https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white transition-all"
+                >
+                  Find on JustWatch →
+                </a>
+              </div>
             )}
           </div>
         )}
@@ -443,7 +392,7 @@ export function VideoPlayer({
         {/* Buffering Overlay */}
         <AnimatePresence>
           {bufferingParticipants.length > 0 && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -511,55 +460,63 @@ export function VideoPlayer({
         )}
 
         {/* Top Navigation Bar */}
-        <div className="absolute top-6 left-6 right-6 z-20 flex items-center justify-between pointer-events-none">
-          <div className="flex gap-2 pointer-events-auto">
-            <div className="flex p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl">
+        <div className="absolute top-6 left-6 right-6 z-20 flex items-start justify-between pointer-events-none">
+          <div className="flex flex-col gap-3 pointer-events-auto">
+            <div className="flex p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl w-fit">
+              {/* Loading indicator — shown only while fetching torrent list */}
+              {P2P_ENABLED && imdbId && torrentLoading && (
+                <span className="flex items-center gap-2 px-4 py-2 text-white/30 text-[10px] font-bold tracking-widest cursor-wait">
+                  <Loader2 size={12} className="animate-spin" />HD STREAM
+                </span>
+              )}
+              {/* HD Stream button — only shown when torrents are confirmed available */}
+              {P2P_ENABLED && torrents.length > 0 && (
+                <button 
+                  onClick={() => handleModeChange('torrent')} 
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all", 
+                    mode === 'torrent' ? "bg-linear-to-r from-[--flx-cyan] to-[--flx-purple] text-white shadow-lg" : "text-white/60 hover:text-white"
+                  )}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                  HD STREAM
+                </button>
+              )}
               {activeFreeId && (
                 <button onClick={() => handleModeChange('free')} className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all", mode === 'free' ? "bg-[--flx-cyan] text-black shadow-lg" : "text-white/60 hover:text-white")}>
                   <div className="w-2 h-2 rounded-full bg-black animate-pulse" />WATCH FREE
                 </button>
               )}
-              <button onClick={() => handleModeChange('player')} className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all", mode === 'player' ? "bg-white text-black shadow-lg" : "text-white/60 hover:text-white")}><Play size={12} fill={mode === 'player' ? "black" : "none"} />STREAM</button>
               <button onClick={() => handleModeChange('trailer')} className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all", mode === 'trailer' ? "bg-[--flx-purple] text-white shadow-lg" : "text-white/60 hover:text-white")}><Tv size={12} />TRAILER</button>
             </div>
 
+            {/* Quality Selector for Torrent Mode */}
+            {mode === 'torrent' && torrents.length > 1 && (
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl w-fit"
+              >
+                {['2160p', '1080p', '720p'].filter(q => torrents.some(t => t.quality === q)).map(q => (
+                  <button
+                    key={q}
+                    onClick={() => setSelectedQuality(q)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[9px] font-black tracking-widest transition-all",
+                      selectedQuality === q ? "bg-white/20 text-white" : "text-white/40 hover:text-white"
+                    )}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </div>
+
+          <div className="pointer-events-auto">
             <button onClick={() => setIsCinemaMode(!isCinemaMode)} className={cn("flex items-center gap-2 px-4 py-3 backdrop-blur-xl border border-white/10 rounded-2xl text-[10px] font-bold tracking-widest transition-all", isCinemaMode ? "bg-white text-black" : "bg-black/40 text-white hover:bg-black/60")}>
               <Monitor size={12} />CINEMA
             </button>
-
-            {mode === 'player' && !activeFreeId && (
-              <button
-                onClick={handleAISearch}
-                disabled={isSearchingAI}
-                className="flex items-center gap-2 px-4 py-3 bg-[--flx-purple]/10 hover:bg-[--flx-purple]/20 border border-[--flx-purple]/20 rounded-2xl text-[10px] font-bold text-[--flx-purple] tracking-widest transition-all active:scale-95 disabled:opacity-50"
-              >
-                {isSearchingAI ? (
-                  <Loader2 size={12} className="animate-spin" />
-                ) : (
-                  <Search size={12} />
-                )}
-                {isSearchingAI ? "FINDING..." : "AI MATCHER"}
-              </button>
-            )}
-
-            <div className="relative">
-              <button onClick={() => setShowServerList(!showServerList)} className="flex items-center gap-2 px-4 py-3 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl text-[10px] font-bold text-white tracking-widest hover:bg-black/60 transition-all">
-                <Server size={12} className="text-[--flx-cyan]" />{activeServer.name}<ChevronDown size={12} className={cn("transition-transform", showServerList && "rotate-180")} />
-              </button>
-              {showServerList && (
-                <div className="absolute top-full left-0 mt-2 w-56 bg-[#110c1d]/95 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-2">
-                  {SERVERS.map((server) => (
-                    <button key={server.id} onClick={() => handleServerChange(server)} className={cn("w-full flex items-center justify-between px-4 py-3 text-[10px] font-bold tracking-widest transition-colors border-b border-white/5 last:border-none", activeServer.id === server.id ? "text-[--flx-cyan] bg-white/5" : "text-white/60 hover:text-white hover:bg-white/5")}>
-                      <div className="flex items-center gap-3">
-                        <div className={cn("w-1.5 h-1.5 rounded-full", server.health === 'working' ? "bg-green-500" : server.health === 'warning' ? "bg-yellow-500" : "bg-red-500")} />
-                        {server.name}
-                      </div>
-                      {activeServer.id === server.id && <div className="w-1.5 h-1.5 rounded-full bg-[--flx-cyan] animate-pulse" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
@@ -596,8 +553,8 @@ export function VideoPlayer({
           </div>
           <div className="relative h-1.5 w-full bg-white/5 rounded-full">
             <ReactionHeatmap tmdbId={tmdbId} duration={duration} />
-            <div 
-              className="absolute inset-y-0 left-0 bg-linear-to-r from-[--flx-purple] via-[--flx-cyan] to-[--flx-purple] bg-size-[200%_100%] animate-shimmer rounded-full transition-all" 
+            <div
+              className="absolute inset-y-0 left-0 bg-linear-to-r from-[--flx-purple] via-[--flx-cyan] to-[--flx-purple] bg-size-[200%_100%] animate-shimmer rounded-full transition-all"
               style={{ width: duration > 0 ? `${(currentTime / duration) * 100}%` : '100%' }}
             />
           </div>
@@ -605,8 +562,17 @@ export function VideoPlayer({
 
         <div className="flex items-center gap-4">
           <ReactionToggle />
+          <button
+            onClick={() => setIsAssistantOpen(prev => !prev)}
+            className={cn(
+              "p-3 rounded-xl transition-all",
+              isAssistantOpen ? "bg-[--flx-purple]/20 text-[--flx-purple]" : "bg-white/5 hover:bg-white/10 text-white/40 hover:text-[--flx-purple]"
+            )}
+            title="AI Advisor (?)"
+          >
+            <Sparkles size={18} />
+          </button>
           <button className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-white/40 hover:text-white transition-all"><Info size={18} /></button>
-          <button onClick={handleRefresh} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-white/40 hover:text-[--flx-cyan] transition-all"><RefreshCw size={18} /></button>
         </div>
       </div>
     </div>

@@ -19,10 +19,8 @@ interface WatchPlayerWrapperProps {
   fullFilmYoutubeId?: string;
   nextEpisodeUrl?: string;
   overview?: string;
-  imdbId?: string;
-  releaseDate?: string;
-  status?: string;
   rating?: number;
+  imdbId?: string;
 }
 
 export function WatchPlayerWrapper(props: WatchPlayerWrapperProps) {

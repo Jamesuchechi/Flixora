@@ -51,6 +51,7 @@ import { PageWipe } from '@/components/transitions/PageWipe';
 import { BackGesture } from '@/components/transitions/BackGesture';
 import { ConnectionToast } from '@/components/shared/ConnectionToast';
 import { GlobalStateSyncer } from '@/components/shared/GlobalStateSyncer';
+import { ToastProvider } from '@/components/ui/Toast';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <BackGesture />
         <ConnectionToast />
         <GlobalStateSyncer />
+        <ToastProvider />
         {children}
       </body>
     </html>

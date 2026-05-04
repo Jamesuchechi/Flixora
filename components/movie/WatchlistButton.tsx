@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toggleWatchlist } from '@/lib/supabase/actions/watchlist';
 import { useState } from 'react';
+import { useToast } from '@/hooks/useToast';
 
 interface WatchlistButtonProps {
   id: number;
@@ -20,6 +21,7 @@ export function WatchlistButton({ id, mediaType, className, size = 'md' }: Watch
   const isInWatchlist       = useStore((s) => s.isInWatchlist);
   const addToWatchlist      = useStore((s) => s.addToWatchlist);
   const removeFromWatchlist = useStore((s) => s.removeFromWatchlist);
+  const { toast } = useToast();
   
   const saved = isInWatchlist(id);
   const [particles, setParticles] = useState<{ id: number; x: number; y: number; rotate: number }[]>([]);
@@ -28,13 +30,13 @@ export function WatchlistButton({ id, mediaType, className, size = 'md' }: Watch
     e.preventDefault();
     e.stopPropagation();
 
-    // Optimistic Update
     if (saved) {
       removeFromWatchlist(id);
-      setParticles([]); // Clear particles on unsave
+      setParticles([]);
+      toast({ message: 'Removed from list', type: 'info' });
     } else {
       addToWatchlist(id);
-      // Generate stable random values in event handler (not render)
+      toast({ message: 'Added to your list', type: 'success' });
       const newParticles = [...Array(6)].map((_, i) => ({
         id: Date.now() + i,
         x: (Math.random() - 0.5) * 40,

@@ -1,46 +1,141 @@
-import { getStreamingSources } from '@/lib/watchmode';
+import { getStreamingSources, type WatchmodeSource } from '@/lib/watchmode';
+import { getProviderMeta, isFreeProvider, toJustWatchSlug } from '@/lib/streaming-providers';
+
+// ── Props ──────────────────────────────────────────────────────────────────────
 
 interface StreamingAvailabilityProps {
   imdbId?: string;
+  title?: string;
 }
 
-export async function StreamingAvailability({ imdbId }: StreamingAvailabilityProps) {
-  if (!imdbId) return null;
+// ── Skeleton loader ────────────────────────────────────────────────────────────
 
-  const allSources = await getStreamingSources(imdbId);
-  
-  // Filter for 'sub' (subscription) and unique sources in the US (or just unique names)
-  const subscriptionSources = allSources
-    .filter(s => s.type === 'sub')
-    .filter((v, i, a) => a.findIndex(t => t.name === v.name) === i)
-    .slice(0, 5); // Just show top 5
-
-  if (subscriptionSources.length === 0) return null;
-
+function SkeletonPills() {
   return (
-    <div className="flex flex-col gap-3 animate-fade-up" style={{ animationDelay: '0.4s' }}>
-      <h3 className="text-[10px] text-white/30 uppercase tracking-[3px] font-bold">Available to Stream</h3>
-      
-      <div className="flex flex-wrap gap-4">
-        {subscriptionSources.map((source) => (
-          <a
-            key={source.source_id}
-            href={source.web_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/5 hover:border-[--flx-cyan]/30 hover:bg-white/10 transition-all group"
-          >
-            {/* Simple colored circle if we don't have icons from the API directly */}
-            <div className="w-2 h-2 rounded-full bg-[--flx-cyan] shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
-            <span className="text-xs font-medium text-white/70 group-hover:text-white transition-colors">
-              {source.name}
-            </span>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-white/20 group-hover:text-[--flx-cyan] transition-colors">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" />
-            </svg>
-          </a>
-        ))}
-      </div>
+    <div className="flex flex-wrap gap-2">
+      {[100, 130, 115].map((w) => (
+        <div
+          key={w}
+          className="h-10 rounded-2xl bg-white/5 animate-pulse"
+          style={{ width: w }}
+        />
+      ))}
     </div>
   );
 }
+
+// ── Provider pill ──────────────────────────────────────────────────────────────
+
+function ProviderPill({ source, isFree }: { source: WatchmodeSource; isFree: boolean }) {
+  const meta = getProviderMeta(source.name);
+
+  const bg  = `${meta.color}26`;   // 15% opacity
+  const border = `${meta.color}4D`; // 30% opacity
+  const text   = meta.color;
+
+  return (
+    <a
+      href={source.web_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`Watch on ${meta.displayName}`}
+      className="group flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border transition-all duration-200 hover:scale-[1.03] hover:brightness-110"
+      style={{
+        backgroundColor: bg,
+        borderColor: border,
+        color: text,
+      }}
+    >
+      <span className="text-base leading-none">{meta.logo}</span>
+      <div className="flex flex-col">
+        <span className="text-[11px] font-black uppercase tracking-wider leading-tight">
+          {meta.displayName}
+        </span>
+        <span
+          className="text-[9px] font-bold uppercase tracking-widest leading-tight opacity-70"
+        >
+          {isFree ? 'Free' : source.price ? `$${source.price}` : 'Stream'}
+        </span>
+      </div>
+    </a>
+  );
+}
+
+// ── Main component — server component ─────────────────────────────────────────
+
+export async function StreamingAvailability({ imdbId, title }: StreamingAvailabilityProps) {
+  if (!imdbId) return null;
+
+  const allSources: WatchmodeSource[] = await getStreamingSources(imdbId);
+  if (!allSources.length) return null;
+
+  // Deduplicate by provider name, US region preferred
+  const seen = new Set<string>();
+  const unique = allSources.filter((s) => {
+    if (seen.has(s.name)) return false;
+    seen.add(s.name);
+    return true;
+  });
+
+  const freeSources = unique.filter((s) => isFreeProvider(s));
+  const subSources  = unique
+    .filter((s) => !isFreeProvider(s) && s.type === 'sub')
+    .slice(0, 6);
+
+  if (freeSources.length === 0 && subSources.length === 0) return null;
+
+  const jwSlug = title ? toJustWatchSlug(title) : '';
+
+  return (
+    <div className="flex flex-col gap-5 animate-fade-up" style={{ animationDelay: '0.4s' }}>
+
+      {/* ── Section A: Free ── */}
+      {freeSources.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black uppercase tracking-[3px] text-white/30">
+              Stream Free
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-[--flx-cyan]/15 border border-[--flx-cyan]/30 text-[--flx-cyan] text-[9px] font-black uppercase tracking-widest">
+              FREE
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {freeSources.map((s) => (
+              <ProviderPill key={s.source_id} source={s} isFree />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Section B: Subscription ── */}
+      {subSources.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <span className="text-[9px] font-black uppercase tracking-[3px] text-white/20">
+            Subscription
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {subSources.map((s) => (
+              <ProviderPill key={s.source_id} source={s} isFree={false} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── JustWatch link ── */}
+      {jwSlug && (
+        <a
+          href={`https://www.justwatch.com/us/movie/${jwSlug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[9px] font-bold text-white/25 hover:text-[--flx-cyan] transition-colors uppercase tracking-widest w-fit"
+        >
+          See all streaming options →
+        </a>
+      )}
+    </div>
+  );
+}
+
+// Named export for the skeleton (used as a Suspense fallback)
+export { SkeletonPills as StreamingAvailabilitySkeleton };

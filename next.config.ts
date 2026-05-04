@@ -20,6 +20,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...(config.externals || []), 'webtorrent'];
+    }
+    return config;
+  },
 };
 
 export default withBundleAnalyzer({

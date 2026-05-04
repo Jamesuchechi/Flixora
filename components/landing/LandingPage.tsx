@@ -3,6 +3,7 @@ import { LandingHero }     from './LandingHero';
 import { PosterStrip }     from './PosterStrip';
 import { StatsBar }        from './StatsBar';
 import { FeaturesSection } from './FeaturesSection';
+import { HowItWorks }      from './HowItWorks';
 import { PlayerShowcase }  from './PlayerShowcase';
 import { PricingSection }  from './PricingSection';
 import { FaqSection }      from './FaqSection';
@@ -17,6 +18,7 @@ export function LandingPage() {
       <PosterStrip />
       <StatsBar />
       <FeaturesSection />
+      <HowItWorks />
       <PlayerShowcase />
       <PricingSection />
       <FaqSection />

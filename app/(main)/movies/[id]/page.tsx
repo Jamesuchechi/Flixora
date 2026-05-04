@@ -16,6 +16,7 @@ import { TrailerInsights } from '@/components/movie/TrailerInsights';
 import { StartPartyButton } from '@/components/social/StartPartyButton';
 import { ReactionHighlights } from '@/components/social/ReactionHighlights';
 import type { TMDBCredits, TMDBVideo, TMDBCastMember, TMDBCrewMember } from '@/types/tmdb';
+import { StreamingAvailability } from '@/components/movie/StreamingAvailability';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -213,6 +214,16 @@ export default async function MovieDetailPage({ params, searchParams }: Props) {
 
           <div className="lg:col-span-4">
             <aside className="sticky top-24 bg-linear-to-b from-[--flx-surface-1] to-[--flx-surface-2] border border-white/5 rounded-[32px] p-10 space-y-8 shadow-[inset_0_0_40px_rgba(139,92,246,0.05)] backdrop-blur-xl">
+
+              {/* Where to Watch */}
+              <div className="space-y-4 border-b border-white/5 pb-8">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-bebas text-xl tracking-[3px] text-[--flx-text-1] uppercase">Where to Watch</h2>
+                  <span className="text-[8px] font-bold uppercase tracking-[2px] text-white/15">via Watchmode</span>
+                </div>
+                <StreamingAvailability imdbId={movie.imdb_id} title={movie.title} />
+              </div>
+
               <h2 className="font-bebas text-2xl tracking-[4px] text-[--flx-text-1] uppercase border-b border-white/5 pb-6">Information</h2>
               
               <div className="grid grid-cols-2 gap-8">

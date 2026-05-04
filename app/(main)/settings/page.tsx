@@ -11,9 +11,11 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import Image from 'next/image';
 import { useStore, UserPreferences } from '@/store/useStore';
+import { useToast } from '@/hooks/useToast';
 
 export default function SettingsPage() {
   const { preferences: prefs, setPreference, setAllPreferences } = useStore();
+  const { toast } = useToast();
   
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -54,6 +56,14 @@ export default function SettingsPage() {
     }
     loadData();
   }, [setAllPreferences]);
+
+  // Fire toast when profile saves successfully
+  useEffect(() => {
+    if (state.success) {
+      toast({ message: 'Changes saved', type: 'success' });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.success]);
 
   // Save preferences
   useEffect(() => {

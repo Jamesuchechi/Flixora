@@ -28,6 +28,13 @@ interface AIInsights {
   generated_at?: string;
 }
 
+export interface ToastItem {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+  duration: number;
+}
+
 interface FlixoraStore {
   // Search overlay
   searchOpen: boolean;
@@ -61,6 +68,11 @@ interface FlixoraStore {
   // Notifications
   unreadNotifications: number;
   setUnreadNotifications: (count: number) => void;
+
+  // Toasts
+  toasts: ToastItem[];
+  addToast: (message: string, type?: ToastItem['type'], duration?: number) => void;
+  dismissToast: (id: string) => void;
 }
 
 export const useStore = create<FlixoraStore>()(
@@ -124,6 +136,18 @@ export const useStore = create<FlixoraStore>()(
       // Notifications
       unreadNotifications: 0,
       setUnreadNotifications: (count) => set({ unreadNotifications: count }),
+
+      // Toasts
+      toasts: [],
+      addToast: (message, type = 'info', duration = 3000) =>
+        set((s) => ({
+          toasts: [
+            ...s.toasts,
+            { id: `toast-${Date.now()}-${Math.random()}`, message, type, duration },
+          ],
+        })),
+      dismissToast: (id) =>
+        set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
     }),
     { name: 'flixora-store' }
   )
