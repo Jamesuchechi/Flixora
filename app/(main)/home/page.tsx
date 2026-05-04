@@ -130,6 +130,18 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <div className="h-px bg-white/5 mx-10" />
       <MovieRow title="Nollywood Excellence" items={nollywood.results.slice(0, 10)} pill={{ label: "NOLLYWOOD", variant: "hot" }} />
 
+      {/* regional/domain test row */}
+      <div className="h-px bg-white/5 mx-10" />
+      <MovieRow 
+        title="YouTube Global Classics" 
+        items={[
+          { id: 430040, title: 'Big Buck Bunny', poster_path: '/nGeXN3fO4X30uM8U32eLdpxU43y.jpg', media_type: 'movie', vote_average: 7.2 },
+          { id: 290157, title: 'Sita Sings the Blues', poster_path: '/c4hC6lDNR0G68Xh9uVb7rXvFf7T.jpg', media_type: 'movie', vote_average: 7.1 },
+          { id: 310569, title: 'The Prophet', poster_path: '/2mR0yWdGqCqR5R6v1WkPq6fF8XU.jpg', media_type: 'movie', vote_average: 7.4 }
+        ] as AnyMedia[]} 
+        pill={{ label: "TEST", variant: "new" }} 
+      />
+
       <div className="h-px bg-white/5 mx-10" />
       <MovieRow title="Recently Added" items={nowPlaying.results.slice(0, 10)} pill={{ label: "LATEST", variant: "new" }} />
 

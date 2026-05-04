@@ -79,11 +79,16 @@ export function VideoPlayer({
       : null;
     const urlMode = searchParams.get('mode') as PlayerMode | null;
     const preferred = urlMode ?? stored;
-    // Use preferred only if that mode is structurally available for this title
+
+    // Use preferred only if that mode is structurally available
+    if (preferred === 'torrent' && P2P_ENABLED && imdbId) return 'torrent';
     if (preferred === 'free' && activeFreeId) return 'free';
-    if (preferred === 'torrent' && P2P_ENABLED) return 'torrent';
     if (preferred === 'trailer') return 'trailer';
-    return activeFreeId ? 'free' : 'trailer';
+
+    // Default Waterfall: Torrent (Native) -> Free (Curated) -> Trailer
+    if (P2P_ENABLED && imdbId) return 'torrent';
+    if (activeFreeId) return 'free';
+    return 'trailer';
   };
 
   const [mode, setMode] = useState<PlayerMode>(() => getDefaultMode());

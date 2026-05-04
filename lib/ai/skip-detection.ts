@@ -1,3 +1,6 @@
+import { tmdb } from '@/lib/tmdb';
+import type { TMDBExternalIds } from '@/types/tmdb';
+
 /**
  * Skip Detection Logic
  * Currently supports AniSkip for Anime and YouTube Chapters for some titles.
@@ -55,13 +58,9 @@ export async function getSkipSegments(tmdbId: number, mediaType: 'movie' | 'tv',
   if (!episode) return [];
 
   try {
-    // 1. Get External IDs from TMDB to find the MyAnimeList (MAL) ID
-    const tmdbKey = process.env.TMDB_API_KEY;
-    const externalIdsRes = await fetch(
-      `https://api.themoviedb.org/3/tv/${tmdbId}/external_ids?api_key=${tmdbKey}`
-    );
-    const externalIds = await externalIdsRes.json();
-    const malId = externalIds.mal_id;
+    // 1. Get External IDs from TMDB to find the MyAnimeList (MAL) ID via our secure proxy
+    const externalIds = await tmdb.tv.externalIds(tmdbId, { silent: true }).catch(() => null);
+    const malId = (externalIds as TMDBExternalIds | null)?.mal_id;
 
     if (!malId) return [];
 

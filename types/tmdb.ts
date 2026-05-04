@@ -28,6 +28,8 @@ export interface TMDBExternalIds {
   facebook_id?: string;
   instagram_id?: string;
   twitter_id?: string;
+  mal_id?: number;
+  tvdb_id?: number;
 }
 
 export interface TMDBTVShow {
