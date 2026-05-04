@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { VERIFIED_FREE_CHANNELS, type PipelineResult, type PipelineItem } from '@/lib/youtube-pipeline';
+import { VERIFIED_FREE_CHANNELS, type PipelineResult, type PipelineItem } from '@/lib/youtube-types';
 import { runPipelineAction } from '@/lib/supabase/actions/pipeline-action';
 import {
   Play, CheckCircle2, XCircle, Clock, AlertTriangle, Loader2,

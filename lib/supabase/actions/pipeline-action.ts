@@ -1,6 +1,7 @@
 'use server';
 
-import { runDiscoveryPipeline, type PipelineResult } from '@/lib/youtube-pipeline';
+import { runDiscoveryPipeline } from '@/lib/youtube-pipeline';
+import type { PipelineResult } from '@/lib/youtube-types';
 
 /**
  * Server Action that proxies the pipeline run.

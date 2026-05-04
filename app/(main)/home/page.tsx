@@ -15,10 +15,11 @@ import type { TMDBMovie, TMDBTVShow } from "@/types/tmdb";
 export const revalidate = 3600;
 
 interface HomePageProps {
-  searchParams: { genre?: string };
+  searchParams: Promise<{ genre?: string }>;
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
+  const resolvedSearchParams = await searchParams;
   const [
     trending, 
     topRated, 
@@ -47,7 +48,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   type AnyMedia = (TMDBMovie | TMDBTVShow) & { media_type?: "movie" | "tv" };
 
-  const activeMood = searchParams.genre || 'All';
+  const activeMood = resolvedSearchParams.genre || 'All';
   
   // Filter trending items based on mood
   let filteredTrending = trending.results;
