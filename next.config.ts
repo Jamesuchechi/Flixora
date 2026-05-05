@@ -20,9 +20,25 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
     if (isServer) {
       config.externals = [...(config.externals || []), 'webtorrent'];
+    } else {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+        stream: false,
+        os: false,
+        path: false,
+      };
+      config.plugins.push(
+        new webpack.ProvidePlugin({
+          global: 'globalThis',
+        })
+      );
     }
     return config;
   },
