@@ -4,9 +4,19 @@ import { cookies } from 'next/headers';
 export const createClient = async () => {
   const cookieStore = await cookies();
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('CRITICAL: Supabase environment variables are missing.');
+    // We throw a descriptive error which Next.js will catch and show as a 500
+    // but at least it will be logged on the server.
+    throw new Error('Supabase configuration missing');
+  }
+
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll:  ()         => cookieStore.getAll(),

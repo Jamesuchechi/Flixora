@@ -168,10 +168,18 @@ export function VideoPlayer({
             setTorrents(fetched);
             const has1080 = fetched.some(t => t.quality === '1080p');
             setSelectedQuality(has1080 ? '1080p' : fetched[0].quality);
-            const currentUrlMode = new URLSearchParams(window.location.search).get('mode');
-            if (!currentUrlMode) {
+            
+            // If we have torrents and no explicit mode is in URL, prefer torrent
+            const currentUrlMode = searchParams.get('mode');
+            if (!currentUrlMode && mode !== 'torrent') {
               setMode('torrent');
             }
+          } else {
+             // If P2P enabled but no torrents found, fallback to free
+             const currentUrlMode = searchParams.get('mode');
+             if (!currentUrlMode && mode === 'torrent') {
+               setMode('free');
+             }
           }
         } catch (err) {
           console.error('[P2P] Fetch failed:', err);
@@ -184,7 +192,7 @@ export function VideoPlayer({
 
     const timer = setTimeout(() => setShowShortcuts(false), 5000);
     return () => clearTimeout(timer);
-  }, [tmdbId, mediaType, season, episode, fullFilmYoutubeId, youtubeId, imdbId]);
+  }, [tmdbId, mediaType, season, episode, fullFilmYoutubeId, youtubeId, imdbId]); // searchParams and mode intentionally omitted to prevent loops
 
   useEffect(() => {
     if (autoSkipEnabled && skipSegments.length > 0) {
@@ -268,9 +276,11 @@ export function VideoPlayer({
   };
 
   const handleModeChange = (newMode: PlayerMode) => {
+    if (newMode === mode) return;
     setMode(newMode);
     setFreeStreamFailed(false);
     if (typeof window !== 'undefined') localStorage.setItem(MODE_STORAGE_KEY, newMode);
+    
     const params = new URLSearchParams(searchParams.toString());
     params.set('mode', newMode);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });

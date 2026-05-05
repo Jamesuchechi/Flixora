@@ -15,33 +15,38 @@ export async function updateWatchProgress(
   season?: number | null,
   episode?: number | null
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Not authenticated' };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not authenticated' };
 
-  // If progress is > 90%, consider it finished
-  const finalProgress = progress > 90 ? 100 : progress;
+    // If progress is > 90%, consider it finished
+    const finalProgress = progress > 90 ? 100 : progress;
 
-  const { error } = await supabase
-    .from('watch_progress')
-    .upsert({
-      user_id: user.id,
-      tmdb_id: tmdbId,
-      media_type: mediaType,
-      progress: finalProgress,
-      season: season ?? null,
-      episode: episode ?? null,
-      updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'user_id, tmdb_id, media_type, season, episode'
-    });
+    const { error } = await supabase
+      .from('watch_progress')
+      .upsert({
+        user_id: user.id,
+        tmdb_id: tmdbId,
+        media_type: mediaType,
+        progress: finalProgress,
+        season: season ?? null,
+        episode: episode ?? null,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id, tmdb_id, media_type, season, episode'
+      });
 
-  if (error) {
-    console.error('Error updating progress:', error);
-    return { error: error.message };
+    if (error) {
+      console.error('[Supabase] Progress Upsert Error:', error);
+      return { error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('[Server Action] updateWatchProgress crash:', err);
+    return { error: 'Internal server error' };
   }
-
-  return { success: true };
 }
 
 /**

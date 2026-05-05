@@ -43,7 +43,7 @@ export const TRACKER_LIST = [
 /**
  * Constructs a magnet URI from a hash and title.
  */
-export async function buildMagnetUri(hash: string, title: string): Promise<string> {
+function buildMagnetUri(hash: string, title: string): string {
   let magnet = `magnet:?xt=urn:btih:${hash}&dn=${encodeURIComponent(title)}`;
   TRACKER_LIST.forEach(tracker => {
     magnet += `&tr=${encodeURIComponent(tracker)}`;
@@ -72,19 +72,18 @@ export async function getMovieTorrents(imdbId: string): Promise<{
       return { movie: null, torrents: [], error: 'Not found in YTS' };
     }
 
-    const torrents = await Promise.all((movie.torrents || [])
+    const torrents = (movie.torrents || [])
       .filter(t => t.seeds > 0)
-      .map(async t => ({
+      .map(t => ({
         ...t,
-        magnetUri: await buildMagnetUri(t.hash, movie.title)
-      })));
-    
-    torrents.sort((a, b) => {
-      const qMap = { '2160p': 3, '1080p': 2, '720p': 1, '3D': 0 };
-      const qA = qMap[a.quality as keyof typeof qMap] || 0;
-      const qB = qMap[b.quality as keyof typeof qMap] || 0;
-      return qB - qA;
-    });
+        magnetUri: buildMagnetUri(t.hash, movie.title)
+      }))
+      .sort((a, b) => {
+        const qMap = { '2160p': 3, '1080p': 2, '720p': 1, '3D': 0 };
+        const qA = qMap[a.quality as keyof typeof qMap] || 0;
+        const qB = qMap[b.quality as keyof typeof qMap] || 0;
+        return qB - qA;
+      });
 
     return { movie, torrents, error: null };
   } catch (error) {

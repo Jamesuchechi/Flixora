@@ -105,8 +105,8 @@ export function Navbar() {
                       <Link href={`${href}?sort=new`} className="block text-[11px] font-black uppercase tracking-widest text-[--flx-text-2] hover:text-[--flx-cyan] transition-colors">
                         New Releases
                       </Link>
-                      <Link href="/genres" className="block text-[11px] font-black uppercase tracking-widest text-[--flx-text-2] hover:text-[--flx-cyan] transition-colors border-t border-white/5 pt-3">
-                        By Genre
+                      <Link href="/trending" className="block text-[11px] font-black uppercase tracking-widest text-[--flx-text-2] hover:text-[--flx-cyan] transition-colors border-t border-white/5 pt-3">
+                        Popular
                       </Link>
                     </div>
                   </motion.div>
