@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { Sparkles, Play, Info, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
