@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
         path: false,
       };
       config.plugins.push(
-        new webpack.ProvidePlugin({
+        new webpack.DefinePlugin({
           global: 'globalThis',
         })
       );
