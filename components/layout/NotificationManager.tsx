@@ -10,7 +10,7 @@ export function NotificationManager() {
   const supabase = createClient();
 
   useEffect(() => {
-    let channel: any;
+    let channel: ReturnType<typeof supabase.channel>;
 
     const init = async () => {
       // 1. Fetch initial unread count
