@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Briefcase, MapPin, Clock, Search, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
