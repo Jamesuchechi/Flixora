@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { EndPartyScreen } from '../social/EndPartyScreen';
 import dynamic from 'next/dynamic';
-import { getMovieTorrents, type YTSTorrent } from '@/lib/yts';
+import { getMediaTorrents, type StreamTorrent } from '@/lib/torrentio';
 import { useToast } from '@/hooks/useToast';
 
 const P2P_ENABLED = process.env.NEXT_PUBLIC_ENABLE_P2P === 'true';
@@ -47,7 +47,7 @@ interface VideoPlayerProps {
   imdbId?: string;
 }
 
-type PlayerMode = 'free' | 'torrent';
+type PlayerMode = 'free' | 'torrent' | 'hd';
 
 // ── No-content placeholder shown when nothing can play ──────────────────────
 function NoContentPlaceholder({ title }: { title: string }) {
@@ -108,6 +108,7 @@ export function VideoPlayer({
     // URL param takes highest priority (explicit user choice)
     const urlMode = searchParams.get('mode') as PlayerMode | null;
     if (urlMode === 'torrent' && P2P_ENABLED && imdbId) return 'torrent';
+    if (urlMode === 'hd') return 'hd';
     if (urlMode === 'free' && activeFreeId) return 'free';
 
     // Stored preference is second priority
@@ -115,18 +116,18 @@ export function VideoPlayer({
       ? (localStorage.getItem(MODE_STORAGE_KEY) as PlayerMode | null)
       : null;
     if (stored === 'torrent' && P2P_ENABLED && imdbId) return 'torrent';
+    if (stored === 'hd') return 'hd';
     if (stored === 'free' && activeFreeId) return 'free';
 
     // Auto-select best available:
-    // 1. Torrent (native, best quality) — only if P2P is enabled
     if (P2P_ENABLED && imdbId) return 'torrent';
-    // 2. Free YouTube full film — only if available
-    return 'free';
+    if (activeFreeId) return 'free';
+    return 'hd';
   };
 
   const [mode, setMode] = useState<PlayerMode>(() => getDefaultMode());
 
-  const [torrents, setTorrents] = useState<(YTSTorrent & { magnetUri: string })[]>([]);
+  const [torrents, setTorrents] = useState<StreamTorrent[]>([]);
   const [selectedQuality, setSelectedQuality] = useState<string>('1080p');
   const [torrentLoading, setTorrentLoading] = useState(P2P_ENABLED && !!imdbId);
 
@@ -134,7 +135,7 @@ export function VideoPlayer({
   const [currentTime, setCurrentTime] = useState(0);
 
   const availableModes = [
-    P2P_ENABLED && (torrents.length > 0 || torrentLoading) ? 'torrent' : null,
+    P2P_ENABLED && (torrents.length > 0 || torrentLoading) ? 'torrent' : 'hd',
     activeFreeId ? 'free' : null,
   ].filter(Boolean) as PlayerMode[];
 
@@ -163,23 +164,25 @@ export function VideoPlayer({
       if (P2P_ENABLED && imdbId) {
         setTorrentLoading(true);
         try {
-          const { torrents: fetched } = await getMovieTorrents(imdbId);
+          const { torrents: fetched } = await getMediaTorrents(imdbId, mediaType, season, episode);
           if (fetched.length > 0) {
             setTorrents(fetched);
             const has1080 = fetched.some(t => t.quality === '1080p');
             setSelectedQuality(has1080 ? '1080p' : fetched[0].quality);
             
             // If we have torrents and no explicit mode is in URL, prefer torrent
-            const currentUrlMode = searchParams.get('mode');
-            if (!currentUrlMode && mode !== 'torrent') {
-              setMode('torrent');
-            }
+            setMode(prevMode => {
+              const currentUrlMode = new URLSearchParams(window.location.search).get('mode');
+              if (!currentUrlMode && prevMode !== 'torrent') return 'torrent';
+              return prevMode;
+            });
           } else {
              // If P2P enabled but no torrents found, fallback to free
-             const currentUrlMode = searchParams.get('mode');
-             if (!currentUrlMode && mode === 'torrent') {
-               setMode('free');
-             }
+             setMode(prevMode => {
+               const currentUrlMode = new URLSearchParams(window.location.search).get('mode');
+               if (!currentUrlMode && prevMode === 'torrent') return 'free';
+               return prevMode;
+             });
           }
         } catch (err) {
           console.error('[P2P] Fetch failed:', err);
@@ -192,7 +195,7 @@ export function VideoPlayer({
 
     const timer = setTimeout(() => setShowShortcuts(false), 5000);
     return () => clearTimeout(timer);
-  }, [tmdbId, mediaType, season, episode, fullFilmYoutubeId, youtubeId, imdbId]); // searchParams and mode intentionally omitted to prevent loops
+  }, [tmdbId, mediaType, season, episode, fullFilmYoutubeId, youtubeId, imdbId]); 
 
   useEffect(() => {
     if (autoSkipEnabled && skipSegments.length > 0) {
@@ -366,6 +369,10 @@ export function VideoPlayer({
       );
     }
 
+    if (mode === 'hd') {
+      return <NoContentPlaceholder title={title} />;
+    }
+
     // Nothing available at all
     return <NoContentPlaceholder title={title} />;
   };
@@ -482,7 +489,7 @@ export function VideoPlayer({
                   <Loader2 size={12} className="animate-spin" />HD STREAM
                 </span>
               )}
-              {P2P_ENABLED && torrents.length > 0 && (
+              {P2P_ENABLED && torrents.length > 0 ? (
                 <button
                   onClick={() => handleModeChange('torrent')}
                   className={cn(
@@ -493,7 +500,18 @@ export function VideoPlayer({
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
                   HD STREAM
                 </button>
-              )}
+              ) : (!P2P_ENABLED || !torrentLoading) ? (
+                <button
+                  onClick={() => handleModeChange('hd')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest transition-all",
+                    mode === 'hd' ? "bg-linear-to-r from-[--flx-cyan] to-[--flx-purple] text-white shadow-lg" : "text-white/60 hover:text-white"
+                  )}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
+                  HD STREAM
+                </button>
+              ) : null}
               {activeFreeId && (
                 <button
                   onClick={() => { setFreeStreamFailed(false); handleModeChange('free'); }}
