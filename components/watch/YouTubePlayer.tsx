@@ -82,7 +82,12 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<{ code: number; message: string; isEmbedError: boolean; suggestion: string } | null>(null);
   const [showControls, setShowControls] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     seekTo: (seconds: number) => {
@@ -102,7 +107,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
       disablekb: 1,
       start: startTime,
       enablejsapi: 1,
-      origin: typeof window !== 'undefined' ? window.location.origin : '',
+      origin: isMounted ? window.location.origin : '',
     },
   };
 
@@ -249,16 +254,18 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
-      <YouTube
-        videoId={videoId}
-        opts={opts}
-        onReady={onReady}
-        onStateChange={onStateChange}
-        onError={onError}
-        onEnd={onEnd}
-        className="w-full h-full"
-        iframeClassName="w-full h-full"
-      />
+      {isMounted && (
+        <YouTube
+          videoId={videoId}
+          opts={opts}
+          onReady={onReady}
+          onStateChange={onStateChange}
+          onError={onError}
+          onEnd={onEnd}
+          className="w-full h-full"
+          iframeClassName="w-full h-full"
+        />
+      )}
 
       {/* Custom Controls Overlay */}
       <div className={cn(
