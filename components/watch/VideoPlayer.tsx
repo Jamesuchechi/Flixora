@@ -270,7 +270,7 @@ export function VideoPlayer({
       const enoughTimePassed = now - lastUpdateRef.current.time > 10000;
       if (isMilestone && isNewPercent && enoughTimePassed) {
         lastUpdateRef.current = { percent, time: now };
-        await updateWatchProgress(tmdbId, mediaType, percent, season, episode);
+        await updateWatchProgress(tmdbId, mediaType, percent, season ?? null, episode ?? null);
       }
     }
   };

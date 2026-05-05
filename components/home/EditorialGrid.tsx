@@ -38,7 +38,7 @@ export function EditorialGrid({ items, title }: EditorialGridProps) {
               transition={{ delay: idx * 0.1 }}
             >
               <Link 
-                href={`/watch/${mediaType}/${id}`}
+                href={`/watch/${id}?type=${mediaType}`}
                 className="relative block aspect-video rounded-2xl overflow-hidden group border border-white/5"
               >
                 <Image

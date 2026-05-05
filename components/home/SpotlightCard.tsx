@@ -62,7 +62,7 @@ export function SpotlightCard({ item }: SpotlightCardProps) {
           </p>
 
           <Link 
-            href={`/watch/${mediaType}/${id}`}
+            href={`/watch/${id}?type=${mediaType}`}
             className="w-fit bg-white text-black px-8 py-3.5 rounded-full font-black text-sm uppercase tracking-[2px] hover:bg-[--flx-cyan] transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-3 group/btn"
           >
             Watch Now

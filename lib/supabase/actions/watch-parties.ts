@@ -268,7 +268,7 @@ export async function inviteToWatchParty(partyId: string, friendId: string) {
     'social',
     'Watch Party Invite',
     `${hostProfile?.username || 'Someone'} invited you to watch a movie together!`,
-    `/watch/${party.media_type}/${party.tmdb_id}?partyId=${partyId}`
+    `/watch/${party.tmdb_id}?type=${party.media_type}&partyId=${partyId}`
   );
 
   return { success: true };

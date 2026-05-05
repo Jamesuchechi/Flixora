@@ -10,6 +10,8 @@ export function NotificationManager() {
   const supabase = createClient();
 
   useEffect(() => {
+    let channel: any;
+
     const init = async () => {
       // 1. Fetch initial unread count
       const notifications = await getNotifications();
@@ -20,8 +22,8 @@ export function NotificationManager() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const channel = supabase
-        .channel('realtime_notifications')
+      channel = supabase
+        .channel(`realtime_notifications_${user.id}_${Date.now()}`)
         .on(
           'postgres_changes',
           {
@@ -58,13 +60,13 @@ export function NotificationManager() {
           }
         )
         .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     };
 
     init();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [supabase, setUnreadNotifications]);
 
   return null; // This component handles side effects only
