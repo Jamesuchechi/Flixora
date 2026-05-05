@@ -21,6 +21,7 @@ export function Footer() {
         { label: 'Help Center', href: '/help' },
         { label: 'Terms of Service', href: '/terms' },
         { label: 'Privacy Policy', href: '/privacy' },
+        { label: 'DMCA Policy', href: '/dmca' },
         { label: 'Contact Us', href: '/contact' },
       ],
     },

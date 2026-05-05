@@ -2,7 +2,7 @@
 
 import YouTube, { YouTubeProps } from 'react-youtube';
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw, RotateCw, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw, RotateCw, AlertTriangle, ExternalLink, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface YouTubePlayerProps {
@@ -29,6 +29,43 @@ export interface YouTubePlayerRef {
   seekTo: (seconds: number) => void;
 }
 
+// Map YouTube error codes to user-friendly messages
+function getErrorInfo(code: number): { message: string; isEmbedError: boolean; suggestion: string } {
+  switch (code) {
+    case 2:
+      return {
+        message: 'Invalid video request.',
+        isEmbedError: false,
+        suggestion: 'The video ID may be incorrect.',
+      };
+    case 5:
+      return {
+        message: 'This video cannot play in the embedded player.',
+        isEmbedError: true,
+        suggestion: 'Try watching directly on YouTube.',
+      };
+    case 100:
+      return {
+        message: 'This video has been removed or is private.',
+        isEmbedError: false,
+        suggestion: 'The uploader may have taken it down.',
+      };
+    case 101:
+    case 150:
+      return {
+        message: 'The video owner has disabled embedding for this video.',
+        isEmbedError: true,
+        suggestion: 'You can watch it directly on YouTube, or find it on a legal streaming service.',
+      };
+    default:
+      return {
+        message: 'An unknown playback error occurred.',
+        isEmbedError: false,
+        suggestion: 'Try refreshing the page.',
+      };
+  }
+}
+
 export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
   videoId,
   title,
@@ -43,7 +80,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [error, setError] = useState<{ code: number; message: string } | null>(null);
+  const [error, setError] = useState<{ code: number; message: string; isEmbedError: boolean; suggestion: string } | null>(null);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -80,20 +117,8 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
 
   const onError = (event: { data: number }) => {
     console.error('YouTube Player Error:', event.data);
-    let message = 'An error occurred while trying to play this video.';
-    
-    // Error code reference:
-    // 2: Invalid parameter
-    // 5: HTML5 player error
-    // 100: Video not found or private
-    // 101/150: Embedding not allowed (region or uploader restriction)
-    if (event.data === 101 || event.data === 150) {
-      message = 'This video is restricted in your region or the uploader has disabled embedding.';
-    } else if (event.data === 100) {
-      message = 'This video could not be found or has been removed.';
-    }
-    
-    setError({ code: event.data, message });
+    const errorInfo = getErrorInfo(event.data);
+    setError({ code: event.data, ...errorInfo });
     onPlayerError?.(event.data);
     setIsPlaying(false);
   };
@@ -139,48 +164,80 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
   };
 
   const formatTime = (s: number) => {
+    if (!s || isNaN(s)) return '0:00';
     const mins = Math.floor(s / 60);
     const secs = Math.floor(s % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (error) {
-    const isEmbedError = error.code === 101 || error.code === 150;
+    const justWatchUrl = title
+      ? `https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}`
+      : 'https://www.justwatch.com';
+
     return (
-      <div className="w-full h-full bg-[#090514] flex flex-col items-center justify-center p-8 text-center space-y-6">
-        <div className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-          <AlertTriangle className="text-red-400" size={36} />
+      <div className="w-full h-full bg-[#090514] flex flex-col items-center justify-center p-8 text-center space-y-8">
+        {/* Icon */}
+        <div className="relative">
+          <div className="w-24 h-24 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+            <AlertTriangle className="text-red-400" size={40} />
+          </div>
+          <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#090514] border border-red-500/20 flex items-center justify-center text-lg">
+            {error.code}
+          </div>
         </div>
-        
-        <div className="space-y-2 max-w-xs">
-          <h4 className="text-white font-black uppercase tracking-[2px]">
-            {isEmbedError ? 'Playback Restricted' : 'Video Unavailable'}
+
+        {/* Message */}
+        <div className="space-y-3 max-w-sm">
+          <h4 className="text-white font-black uppercase tracking-wider text-lg">
+            {error.isEmbedError ? 'Embedding Disabled' : 'Video Unavailable'}
           </h4>
-          <p className="text-white/40 text-[11px] uppercase tracking-widest leading-relaxed">
+          <p className="text-white/50 text-sm leading-relaxed">
             {error.message}
+          </p>
+          <p className="text-white/30 text-xs leading-relaxed">
+            {error.suggestion}
           </p>
         </div>
 
+        {/* Actions */}
         <div className="flex flex-col gap-3 w-full max-w-xs">
+          {/* Watch on YouTube */}
           <a
             href={`https://www.youtube.com/watch?v=${videoId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-[#FF0000] text-white rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-[#cc0000] transition-all"
+            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-[#FF0000] hover:bg-[#cc0000] text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all hover:scale-[1.02]"
           >
             <ExternalLink size={14} />
             Watch on YouTube
           </a>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black text-white/50 hover:text-white uppercase tracking-[2px] transition-all"
+
+          {/* Find on JustWatch */}
+          <a
+            href={justWatchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/60 hover:text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all"
           >
-            Try Refreshing
+            <Search size={14} />
+            Find on JustWatch
+          </a>
+
+          {/* Retry */}
+          <button
+            onClick={() => {
+              setError(null);
+              setPlayer(null);
+            }}
+            className="px-6 py-3 bg-transparent hover:bg-white/5 border border-white/5 hover:border-white/10 rounded-2xl text-[10px] font-black text-white/30 hover:text-white/60 uppercase tracking-[2px] transition-all"
+          >
+            Try Again
           </button>
         </div>
 
-        <p className="text-[9px] text-white/15 uppercase tracking-widest max-w-xs">
-          Error code: {error.code}
+        <p className="text-[9px] text-white/15 uppercase tracking-widest">
+          Error code: {error.code} — This video cannot be embedded on third-party sites.
         </p>
       </div>
     );
@@ -216,7 +273,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
           </div>
         </div>
 
-        {/* Center Play/Pause Toggle */}
+        {/* Center Play/Pause */}
         <div className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={togglePlay}>
           {!isPlaying && (
             <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center animate-in zoom-in-75">
@@ -227,14 +284,22 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
 
         {/* Bottom Controls */}
         <div className="p-8 space-y-6">
-          <div className="relative group/progress h-1.5 w-full bg-white/10 rounded-full cursor-pointer">
+          <div className="relative group/progress h-1.5 w-full bg-white/10 rounded-full cursor-pointer"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const ratio = (e.clientX - rect.left) / rect.width;
+              const newTime = ratio * duration;
+              player?.seekTo(newTime, true);
+              setCurrentTime(newTime);
+            }}
+          >
             <div
               className="absolute top-0 left-0 h-full bg-[--flx-purple] rounded-full transition-all"
-              style={{ width: `${(currentTime / duration) * 100}%` }}
+              style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
             />
             <div
-              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg opacity-0 group-hover/progress:opacity-100 transition-opacity"
-              style={{ left: `${(currentTime / duration) * 100}%` }}
+              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg opacity-0 group-hover/progress:opacity-100 transition-opacity -ml-2"
+              style={{ left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
             />
           </div>
 
@@ -260,7 +325,13 @@ export const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(({
                 </span>
               </div>
             </div>
-            <button className="text-white/60 hover:text-white transition-colors cursor-pointer">
+            <button
+              onClick={() => {
+                const el = document.querySelector('iframe');
+                if (el?.requestFullscreen) el.requestFullscreen();
+              }}
+              className="text-white/60 hover:text-white transition-colors cursor-pointer"
+            >
               <Maximize size={20} />
             </button>
           </div>

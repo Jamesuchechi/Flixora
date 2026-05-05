@@ -4,15 +4,30 @@ import Image from 'next/image';
 const FOOTER_LINKS = [
   {
     heading: 'Product',
-    links: ['Features', 'Pricing', 'Changelog', 'Roadmap'],
+    links: [
+      { label: 'Features', href: '/#features' },
+      { label: 'Pricing', href: '/#pricing' },
+      { label: 'Changelog', href: '/press' },
+      { label: 'Roadmap', href: '/help' },
+    ],
   },
   {
     heading: 'Company',
-    links: ['About', 'Blog', 'Careers', 'Contact'],
+    links: [
+      { label: 'About', href: '/about' },
+      { label: 'Blog', href: '/press' },
+      { label: 'Careers', href: '/careers' },
+      { label: 'Contact', href: '/contact' },
+    ],
   },
   {
     heading: 'Legal',
-    links: ['Privacy', 'Terms', 'Cookies', 'DMCA'],
+    links: [
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Terms', href: '/terms' },
+      { label: 'Cookies', href: '/privacy' },
+      { label: 'DMCA', href: '/dmca' },
+    ],
   },
 ];
 
@@ -44,9 +59,9 @@ export function LandingFooter() {
               <h4 className="text-[11px] tracking-[2px] uppercase text-[--flx-text-3] mb-3 font-medium">{heading}</h4>
               <ul className="space-y-2">
                 {links.map((link) => (
-                  <li key={link}>
-                    <Link href="#" className="text-[13px] text-[--flx-text-2] hover:text-[--flx-text-1] transition-colors">
-                      {link}
+                  <li key={link.label}>
+                    <Link href={link.href} className="text-[13px] text-[--flx-text-2] hover:text-[--flx-text-1] transition-colors">
+                      {link.label}
                     </Link>
                   </li>
                 ))}
